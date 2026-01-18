@@ -284,6 +284,59 @@ gh pr reopen 123
 - PR은 JIRA 티켓 완료 정책의 테스트를 모두 통과한 후에만 머지
 - 커밋 메시지에 반드시 JIRA 티켓 번호 포함
 
+### Claude 커스텀 명령어
+
+JIRA 티켓 기반 워크플로우를 자동화하는 커스텀 명령어들을 제공합니다.
+
+#### 사용 가능한 명령어
+
+1. **`/jira-start`** - JIRA 티켓 작업 시작
+   - 새로운 작업 브랜치 생성 및 전환
+   - 티켓 번호, 유형, 설명을 입력받아 자동으로 브랜치 생성
+   - 예: `feature/DD-123-add-region-map`
+
+2. **`/jira-pr`** - Pull Request 생성
+   - 변경사항 커밋 및 푸시
+   - GitHub CLI로 PR 자동 생성
+   - PR 템플릿에 JIRA 티켓 링크 및 테스트 체크리스트 포함
+
+3. **`/jira-test`** - 티켓 완료 전 테스트 수행
+   - 프론트엔드: Chrome DevTools MCP로 브라우저 테스트
+   - 백엔드: API 통합 테스트
+   - 테스트 결과를 PR 코멘트로 자동 업데이트
+
+4. **`/jira-complete`** - PR 머지 및 티켓 완료
+   - PR 체크 및 머지 (Squash & Merge)
+   - 작업 브랜치 자동 삭제
+   - JIRA 티켓 완료 안내
+
+#### 워크플로우 예시
+
+```bash
+# 1. 티켓 작업 시작
+/jira-start
+# → 티켓 번호: DD-123
+# → 유형: feature
+# → 설명: add-region-map
+
+# 2. 코드 작성 후 PR 생성
+/jira-pr
+
+# 3. 테스트 수행
+/jira-test
+
+# 4. 리뷰 승인 후 완료
+/jira-complete
+```
+
+#### 명령어 위치
+
+모든 커스텀 명령어는 `.claude/commands/` 디렉토리에 있습니다:
+- `.claude/commands/jira-start.md`
+- `.claude/commands/jira-pr.md`
+- `.claude/commands/jira-test.md`
+- `.claude/commands/jira-complete.md`
+
 ## 코딩 규칙
 
 ### 언어 및 커뮤니케이션
