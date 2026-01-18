@@ -171,39 +171,93 @@ User → Next.js Frontend (Vercel)
    git commit -m "[DD-123] 서울 지역 맵 그리드 컴포넌트 추가"
    ```
 
-3. **원격 저장소에 푸시**
+3. **원격 저장소에 푸시 및 Pull Request 생성**
    ```bash
+   # 원격 저장소에 푸시하면서 PR 생성 (gh CLI 사용)
    git push origin feature/DD-123-add-region-map
+
+   # PR 생성 (대화형)
+   gh pr create --title "[DD-123] 서울 지역 맵 그리드 컴포넌트 추가" \
+     --body "## 변경사항
+   - 서울 12개 지역 그리드 컴포넌트 구현
+   - 지역별 이모지, HOT 배지 표시 기능 추가
+
+   ## JIRA 티켓
+   https://your-jira.atlassian.net/browse/DD-123
+
+   ## 테스트 결과
+   - [x] Playwright 브라우저 테스트 통과
+   - [x] 반응형 디자인 검증 완료
+   - [x] 콘솔 에러 없음" \
+     --assignee @me
+
+   # 또는 에디터로 PR 본문 작성
+   gh pr create
    ```
 
-4. **Pull Request 생성**
-   - GitHub/GitLab에서 PR 생성
-   - PR 제목: `[DD-123] 서울 지역 맵 그리드 컴포넌트 추가`
-   - PR 설명에 JIRA 티켓 링크 및 변경사항 요약 작성
-   - 테스트 결과 첨부 (JIRA 티켓 완료 정책 참고)
+4. **PR 상태 확인**
+   ```bash
+   # 현재 브랜치의 PR 상태 확인
+   gh pr status
+
+   # PR 상세 정보 확인
+   gh pr view
+
+   # 웹 브라우저에서 PR 열기
+   gh pr view --web
+   ```
 
 5. **코드 리뷰 및 테스트**
-   - 리뷰어 지정 및 피드백 반영
+   ```bash
+   # 리뷰어 추가
+   gh pr edit --add-reviewer username1,username2
+
+   # 라벨 추가
+   gh pr edit --add-label "frontend,enhancement"
+   ```
+
    - CI/CD 파이프라인 통과 확인
    - 프론트엔드: Playwright MCP로 브라우저 테스트
    - 백엔드: API 통합 테스트
+   - 리뷰어 피드백 반영 후 추가 커밋 & 푸시
 
 6. **머지 및 티켓 완료**
    ```bash
-   # PR 승인 후 main 브랜치로 머지 (Squash & Merge 권장)
-   # GitHub/GitLab UI에서 "Squash and merge" 선택
+   # PR 승인 후 main 브랜치로 머지 (Squash & Merge)
+   gh pr merge --squash --delete-branch
+
+   # 또는 대화형 머지
+   gh pr merge
 
    # 로컬 main 브랜치 업데이트
    git checkout main
    git pull origin main
-
-   # 작업 브랜치 삭제 (선택사항)
-   git branch -d feature/DD-123-add-region-map
-   git push origin --delete feature/DD-123-add-region-map
    ```
 
    - JIRA 티켓 상태를 "완료"로 변경
    - 테스트 결과를 JIRA 티켓 코멘트에 기록
+
+### 유용한 gh CLI 명령어
+
+```bash
+# 내 PR 목록 확인
+gh pr list --author @me
+
+# 특정 PR 체크아웃
+gh pr checkout 123
+
+# PR에 코멘트 추가
+gh pr comment 123 --body "LGTM!"
+
+# PR 병합 전 체크
+gh pr checks
+
+# PR diff 확인
+gh pr diff
+
+# PR 재오픈
+gh pr reopen 123
+```
 
 ### 커밋 메시지 규칙
 
