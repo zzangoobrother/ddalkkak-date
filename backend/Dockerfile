@@ -10,11 +10,17 @@ COPY src ./src
 RUN gradle build -x test --no-daemon
 
 # Stage 2: Development
-FROM eclipse-temurin:17-jdk-alpine AS development
+FROM eclipse-temurin:17-jdk AS development
 WORKDIR /app
 
 # Gradle 설치 (개발 환경에서 hot reload를 위해)
-RUN apk add --no-cache gradle
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget unzip && \
+    wget https://services.gradle.org/distributions/gradle-8.5-bin.zip && \
+    unzip gradle-8.5-bin.zip -d /opt && \
+    ln -s /opt/gradle-8.5/bin/gradle /usr/bin/gradle && \
+    rm gradle-8.5-bin.zip && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # 소스 코드 복사
 COPY . .
@@ -26,7 +32,7 @@ EXPOSE 8080
 CMD ["gradle", "bootRun", "--no-daemon"]
 
 # Stage 3: Production
-FROM eclipse-temurin:17-jre-alpine AS production
+FROM eclipse-temurin:17-jre AS production
 WORKDIR /app
 
 # 빌드된 JAR 파일 복사
