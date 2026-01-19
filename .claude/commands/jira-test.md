@@ -23,17 +23,16 @@ JIRA 티켓 완료 정책에 따라 필수 테스트를 수행합니다.
    npm run dev
    ```
 
-   b. Chrome DevTools MCP를 사용하여 브라우저 테스트:
-   - `mcp__chrome-devtools__list_pages`: 페이지 목록 확인
-   - `mcp__chrome-devtools__navigate_page`: http://localhost:3000 접속
-   - `mcp__chrome-devtools__take_snapshot`: 페이지 스냅샷 캡처
-   - `mcp__chrome-devtools__take_screenshot`: 스크린샷 저장
-   - `mcp__chrome-devtools__list_console_messages`: 콘솔 에러 확인
+   b. Playwright MCP를 사용하여 브라우저 테스트:
+   - `mcp__playwright__browser_navigate`: http://localhost:3000 접속
+   - `mcp__playwright__browser_snapshot`: 페이지 스냅샷 캡처
+   - `mcp__playwright__browser_take_screenshot`: 스크린샷 저장
+   - `mcp__playwright__browser_console_messages`: 콘솔 에러 확인
 
    c. 주요 사용자 플로우 테스트:
    - UI 렌더링 확인
-   - 인터랙티브 요소 동작 확인
-   - 반응형 디자인 검증 (필요시 `resize_page` 사용)
+   - 인터랙티브 요소 동작 확인 (`browser_click`, `browser_fill_form` 등)
+   - 반응형 디자인 검증 (필요시 `browser_resize` 사용)
 
    d. 테스트 결과 요약:
    - ✅ 페이지 렌더링 성공
