@@ -1,0 +1,61 @@
+spring:
+  application:
+    name: date-ddalkkak
+
+  # 데이터베이스 설정
+  datasource:
+    url: jdbc:postgresql://localhost:5432/ddalkkak_date
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+
+  # JPA 설정
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        show_sql: false
+    show-sql: false
+
+  # Redis 설정
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  # Security OAuth2 설정 (추후 구성)
+  security:
+    oauth2:
+      client:
+        registration:
+          # 카카오, 네이버 등 추가 예정
+
+# 서버 설정
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+# Logging 설정
+logging:
+  level:
+    root: INFO
+    com.ddalkkak.date: DEBUG
+    org.springframework.web: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+# SpringDoc OpenAPI 설정
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  packages-to-scan: com.ddalkkak.date.controller
+  default-consumes-media-type: application/json
+  default-produces-media-type: application/json
