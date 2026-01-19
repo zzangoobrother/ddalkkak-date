@@ -20,12 +20,6 @@ spring:
         show_sql: false
     show-sql: false
 
-  # Redis 설정
-  data:
-    redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-
   # Security OAuth2 설정 (추후 구성)
   security:
     oauth2:
