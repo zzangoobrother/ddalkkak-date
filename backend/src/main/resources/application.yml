@@ -20,18 +20,12 @@ spring:
         show_sql: false
     show-sql: false
 
-  # Redis 설정
-  data:
-    redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-
   # Security OAuth2 설정 (추후 구성)
-  security:
-    oauth2:
-      client:
-        registration:
-          # 카카오, 네이버 등 추가 예정
+  # security:
+  #   oauth2:
+  #     client:
+  #       registration:
+  #         # 카카오, 네이버 등 추가 예정
 
 # 서버 설정
 server:
