@@ -7,13 +7,26 @@
 
 // 이벤트 타입 정의
 export type AnalyticsEvent =
+  // Step 1: 지역 선택 관련
   | "date_map_viewed"
   | "region_selected"
   | "hot_region_clicked"
   | "location_used"
   | "search_opened"
   | "search_completed"
-  | "next_step_clicked";
+  // Step 2: 데이트 유형 선택 관련
+  | "date_type_selected"
+  // Step 3: 예산 선택 관련
+  | "budget_selected"
+  // 네비게이션 관련
+  | "next_step_clicked"
+  | "back_step_clicked"
+  | "step_completed"
+  // 코스 입력 관련
+  | "course_input_started"
+  | "course_input_completed"
+  | "course_input_reset"
+  | "course_generation_requested";
 
 // 이벤트 속성 타입
 export interface AnalyticsEventProperties {

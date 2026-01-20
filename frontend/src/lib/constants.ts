@@ -3,6 +3,7 @@
  */
 
 import type { Region } from "@/types/region";
+import type { DateType, BudgetPreset } from "@/types/course";
 
 // 서울 12개 데이트 지역 데이터
 export const SEOUL_DATE_REGIONS: Region[] = [
@@ -136,3 +137,108 @@ export const HOT_REGIONS = SEOUL_DATE_REGIONS.filter((region) => region.hot);
 export const REGION_MAP = new Map<string, Region>(
   SEOUL_DATE_REGIONS.map((region) => [region.id, region])
 );
+
+// ============================================
+// 데이트 유형 상수
+// ============================================
+
+// 6가지 데이트 유형 카테고리
+export const DATE_TYPES: DateType[] = [
+  {
+    id: "dinner",
+    name: "저녁 식사 데이트",
+    emoji: "🍽️",
+    description: "로맨틱한 분위기의 레스토랑과 야경 중심",
+  },
+  {
+    id: "cafe",
+    name: "카페 & 디저트",
+    emoji: "☕",
+    description: "달콤한 디저트와 함께하는 여유로운 시간",
+  },
+  {
+    id: "culture",
+    name: "문화·전시",
+    emoji: "🎨",
+    description: "함께 감상하며 대화 나누기 좋은 코스",
+  },
+  {
+    id: "activity",
+    name: "액티비티·체험",
+    emoji: "🏃",
+    description: "함께 즐기는 특별한 경험",
+  },
+  {
+    id: "night",
+    name: "야경·산책",
+    emoji: "🌃",
+    description: "밤의 서울을 걸으며 낭만적인 시간",
+  },
+  {
+    id: "special",
+    name: "특별한 날",
+    emoji: "🎁",
+    description: "기념일, 생일에 어울리는 특별한 코스",
+  },
+];
+
+// 데이트 유형 ID로 빠른 조회를 위한 맵
+export const DATE_TYPE_MAP = new Map<string, DateType>(
+  DATE_TYPES.map((type) => [type.id, type])
+);
+
+// ============================================
+// 예산 프리셋 상수
+// ============================================
+
+// 5가지 예산 프리셋 옵션
+export const BUDGET_PRESETS: BudgetPreset[] = [
+  {
+    id: "under30k",
+    label: "3만원 이하",
+    tagline: "부담없이",
+    minAmount: 0,
+    maxAmount: 30000,
+  },
+  {
+    id: "30k-50k",
+    label: "3-5만원",
+    tagline: "가볍게",
+    minAmount: 30000,
+    maxAmount: 50000,
+  },
+  {
+    id: "50k-100k",
+    label: "5-10만원",
+    tagline: "알차게",
+    minAmount: 50000,
+    maxAmount: 100000,
+  },
+  {
+    id: "100k-150k",
+    label: "10-15만원",
+    tagline: "특별하게",
+    minAmount: 100000,
+    maxAmount: 150000,
+  },
+  {
+    id: "custom",
+    label: "직접 입력",
+    tagline: "내 맘대로",
+    minAmount: 10000,
+    maxAmount: 500000,
+  },
+];
+
+// 예산 프리셋 ID로 빠른 조회를 위한 맵
+export const BUDGET_PRESET_MAP = new Map<string, BudgetPreset>(
+  BUDGET_PRESETS.map((preset) => [preset.id, preset])
+);
+
+// 슬라이더 설정
+export const BUDGET_SLIDER_CONFIG = {
+  min: 10000, // 최소 1만원
+  max: 500000, // 최대 50만원
+  step: 5000, // 5천원 단위
+  defaultValue: 50000, // 기본값 5만원
+} as const;
