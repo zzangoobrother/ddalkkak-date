@@ -13,7 +13,7 @@ SCRUM-17 티켓 구현: Kakao Local API를 통한 장소 데이터 수집 및 Cl
 - 키워드 기반 장소 검색
 - 지역 중심 좌표 기반 반경 검색 (2km)
 
-### 2. Claude AI 큐레이션
+### 2. OpenAI GPT-4 큐레이션
 각 장소에 대해 다음 5가지 정보를 자동 분석:
 1. **date_score**: 데이트 적합도 점수 (1-10점)
 2. **mood_tags**: 장소 분위기 해시태그 (최대 3개)
@@ -165,14 +165,11 @@ GET /api/admin/places/regions
 # Kakao REST API Key
 KAKAO_REST_API_KEY=your_kakao_api_key_here
 
-# Claude API Key (Anthropic)
-CLAUDE_API_KEY=your_claude_api_key_here
+# OpenAI API Key
+OPENAI_API_KEY=your_openai_api_key_here
 ```
 
-현재 `application.yml`에 하드코딩된 Kakao API 키:
-```
-0ac2b0019712853b21e9b5f326fa064d
-```
+**중요**: API 키는 반드시 환경 변수로 설정해야 합니다. 코드에 직접 포함하지 마세요.
 
 ## 구현 상세
 
@@ -186,11 +183,11 @@ CLAUDE_API_KEY=your_claude_api_key_here
 
 #### 3. DTO
 - `KakaoPlaceDto`: Kakao Local API 응답 구조
-- `PlaceCurationDto`: Claude API 요청/응답 및 큐레이션 결과
+- `PlaceCurationDto`: OpenAI API 요청/응답 및 큐레이션 결과
 
 #### 4. Service
 - `KakaoLocalApiService`: Kakao Local API 클라이언트
-- `PlaceCurationService`: Claude AI 큐레이션 서비스
+- `PlaceCurationService`: OpenAI GPT-4 큐레이션 서비스
 - `PlaceCollectionService`: 데이터 수집 및 저장 orchestration
 
 #### 5. Controller
@@ -215,7 +212,7 @@ CLAUDE_API_KEY=your_claude_api_key_here
 7. 데이터 검증 (validatePlaceData)
    ↓
 8. PlaceCurationService.curatePlaceInfo()
-   → Claude API 호출 (AI 분석)
+   → OpenAI API 호출 (GPT-4 분석)
    ↓
 9. Place 엔티티 생성 및 저장
    ↓
@@ -228,7 +225,7 @@ CLAUDE_API_KEY=your_claude_api_key_here
 - 카테고리 간 딜레이: 1초
 - 페이지 최대: 3페이지 (45개 장소)
 
-#### Claude API
+#### OpenAI API
 - 장소당 딜레이: 0.5초
 - 지역 간 딜레이: 2초
 
@@ -294,13 +291,13 @@ LIMIT 10;
 ## 주의사항
 
 1. **API 키 관리**: API 키를 Git에 커밋하지 않도록 주의
-2. **비용**: Claude API 호출 비용 발생 (장소당 약 0.001~0.01 USD)
+2. **비용**: OpenAI API 호출 비용 발생 (장소당 약 0.001~0.01 USD)
 3. **시간**: 전체 지역 수집 시 약 10~20분 소요
 4. **Rate Limit**: API 호출 제한을 준수하여 딜레이 적용
 
 ## 문제 해결
 
-### Claude API 키가 없는 경우
+### OpenAI API 키가 없는 경우
 - 큐레이션 없이 기본 장소 정보만 수집됨
 - 나중에 `/update-curation` 엔드포인트로 일괄 업데이트 가능
 

@@ -8,21 +8,32 @@ import lombok.NoArgsConstructor;
 import java.util.List;
 
 /**
- * Claude API 장소 큐레이션 DTO
+ * OpenAI API 장소 큐레이션 DTO
  */
 public class PlaceCurationDto {
 
     /**
-     * Claude API 요청
+     * OpenAI API 요청
      */
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
     public static class Request {
         private String model;
-        @JsonProperty("max_tokens")
-        private Integer maxTokens;
         private List<Message> messages;
+        private Double temperature;
+        @JsonProperty("response_format")
+        private ResponseFormat responseFormat;
+    }
+
+    /**
+     * 응답 형식 지정
+     */
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ResponseFormat {
+        private String type; // "json_object"
     }
 
     /**
@@ -37,33 +48,31 @@ public class PlaceCurationDto {
     }
 
     /**
-     * Claude API 응답
+     * OpenAI API 응답
      */
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
     public static class Response {
         private String id;
-        private String type;
-        private String role;
-        private List<Content> content;
+        private String object;
+        private Long created;
         private String model;
-        @JsonProperty("stop_reason")
-        private String stopReason;
-        @JsonProperty("stop_sequence")
-        private String stopSequence;
+        private List<Choice> choices;
         private Usage usage;
     }
 
     /**
-     * 응답 컨텐츠
+     * 선택지 (응답 옵션)
      */
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class Content {
-        private String type;
-        private String text;
+    public static class Choice {
+        private Integer index;
+        private Message message;
+        @JsonProperty("finish_reason")
+        private String finishReason;
     }
 
     /**
@@ -73,14 +82,16 @@ public class PlaceCurationDto {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class Usage {
-        @JsonProperty("input_tokens")
-        private Integer inputTokens;
-        @JsonProperty("output_tokens")
-        private Integer outputTokens;
+        @JsonProperty("prompt_tokens")
+        private Integer promptTokens;
+        @JsonProperty("completion_tokens")
+        private Integer completionTokens;
+        @JsonProperty("total_tokens")
+        private Integer totalTokens;
     }
 
     /**
-     * 큐레이션 결과 (Claude가 반환하는 JSON 구조)
+     * 큐레이션 결과 (OpenAI가 반환하는 JSON 구조)
      */
     @Getter
     @NoArgsConstructor

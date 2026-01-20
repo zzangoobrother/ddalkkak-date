@@ -13,7 +13,7 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 
 /**
- * AI 큐레이터 서비스 (Claude API 연동)
+ * AI 큐레이터 서비스 (OpenAI API 연동)
  */
 @Slf4j
 @Service
@@ -24,15 +24,14 @@ public class PlaceCurationService {
     private final ObjectMapper objectMapper;
 
     public PlaceCurationService(
-            @Value("${external.claude.api-key}") String apiKey,
-            @Value("${external.claude.api-url}") String baseUrl
+            @Value("${external.openai.api-key}") String apiKey,
+            @Value("${external.openai.api-url}") String baseUrl
     ) {
         this.apiKey = apiKey;
         this.objectMapper = new ObjectMapper();
         this.webClient = WebClient.builder()
                 .baseUrl(baseUrl)
-                .defaultHeader("x-api-key", apiKey)
-                .defaultHeader("anthropic-version", "2023-06-01")
+                .defaultHeader("Authorization", "Bearer " + apiKey)
                 .defaultHeader("Content-Type", "application/json")
                 .build();
     }
@@ -50,24 +49,25 @@ public class PlaceCurationService {
         String prompt = buildCurationPrompt(placeDocument);
 
         PlaceCurationDto.Request request = new PlaceCurationDto.Request(
-                "claude-3-5-sonnet-20241022",
-                1024,
-                List.of(new PlaceCurationDto.Message("user", prompt))
+                "gpt-4o-mini",
+                List.of(new PlaceCurationDto.Message("user", prompt)),
+                0.7,
+                new PlaceCurationDto.ResponseFormat("json_object")
         );
 
         try {
             PlaceCurationDto.Response response = webClient.post()
-                    .uri("/messages")
+                    .uri("/chat/completions")
                     .bodyValue(request)
                     .retrieve()
                     .bodyToMono(PlaceCurationDto.Response.class)
-                    .doOnError(error -> log.error("Claude API 호출 실패: {}", error.getMessage()))
+                    .doOnError(error -> log.error("OpenAI API 호출 실패: {}", error.getMessage()))
                     .onErrorResume(error -> Mono.empty())
                     .block();
 
-            if (response != null && response.getContent() != null && !response.getContent().isEmpty()) {
-                String jsonResponse = response.getContent().get(0).getText();
-                log.debug("Claude API 응답: {}", jsonResponse);
+            if (response != null && response.getChoices() != null && !response.getChoices().isEmpty()) {
+                String jsonResponse = response.getChoices().get(0).getMessage().getContent();
+                log.debug("OpenAI API 응답: {}", jsonResponse);
 
                 // JSON 파싱
                 return parseJsonResponse(jsonResponse);
@@ -110,7 +110,6 @@ public class PlaceCurationService {
                    - 커플들에게 이 장소를 추천하는 핵심 이유
 
                 **응답 형식 (반드시 이 형식으로만 응답):**
-                ```json
                 {
                   "date_score": 8,
                   "mood_tags": ["로맨틱", "아늑한"],
@@ -118,7 +117,6 @@ public class PlaceCurationService {
                   "best_time": "저녁",
                   "recommendation": "감성적인 분위기에서 여유로운 대화를 나누기 좋은 곳"
                 }
-                ```
                 """,
                 place.getPlaceName(),
                 place.getCategoryName(),
@@ -127,21 +125,12 @@ public class PlaceCurationService {
     }
 
     /**
-     * Claude 응답 JSON 파싱
+     * OpenAI 응답 JSON 파싱
      */
     private PlaceCurationDto.CurationResult parseJsonResponse(String jsonResponse) {
         try {
-            // JSON 블록 추출 (```json ... ``` 형식)
-            String jsonContent = jsonResponse;
-            if (jsonResponse.contains("```json")) {
-                int startIdx = jsonResponse.indexOf("```json") + 7;
-                int endIdx = jsonResponse.lastIndexOf("```");
-                if (startIdx > 0 && endIdx > startIdx) {
-                    jsonContent = jsonResponse.substring(startIdx, endIdx).trim();
-                }
-            }
-
-            return objectMapper.readValue(jsonContent, PlaceCurationDto.CurationResult.class);
+            // OpenAI는 이미 순수 JSON을 반환하므로 바로 파싱
+            return objectMapper.readValue(jsonResponse, PlaceCurationDto.CurationResult.class);
         } catch (JsonProcessingException e) {
             log.error("JSON 파싱 실패: {}", e.getMessage());
             return null;

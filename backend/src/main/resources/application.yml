@@ -67,6 +67,6 @@ external:
   kakao:
     api-key: ${KAKAO_REST_API_KEY:0ac2b0019712853b21e9b5f326fa064d}
     local-api-url: https://dapi.kakao.com/v2/local
-  claude:
-    api-key: ${CLAUDE_API_KEY:}
-    api-url: https://api.anthropic.com/v1
+  openai:
+    api-key: ${OPENAI_API_KEY:}
+    api-url: https://api.openai.com/v1
