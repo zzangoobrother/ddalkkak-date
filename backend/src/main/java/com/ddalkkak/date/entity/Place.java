@@ -116,6 +116,20 @@ public class Place {
     private String bestTime;
 
     /**
+     * 평점 (0.0 ~ 5.0)
+     * Kakao Local API의 평점 정보
+     */
+    @Column
+    private Double rating;
+
+    /**
+     * 리뷰 수
+     * Kakao Local API의 리뷰 개수
+     */
+    @Column(name = "review_count")
+    private Integer reviewCount;
+
+    /**
      * 한 줄 추천 이유
      */
     @Column(columnDefinition = "TEXT")
@@ -145,5 +159,13 @@ public class Place {
         this.priceRange = priceRange;
         this.bestTime = bestTime;
         this.recommendation = recommendation;
+    }
+
+    /**
+     * Kakao API 정보 업데이트 (평점, 리뷰 수)
+     */
+    public void updateKakaoInfo(Double rating, Integer reviewCount) {
+        this.rating = rating;
+        this.reviewCount = reviewCount;
     }
 }
