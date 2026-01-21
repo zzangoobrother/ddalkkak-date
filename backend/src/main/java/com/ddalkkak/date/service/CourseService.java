@@ -82,13 +82,11 @@ public class CourseService {
         // 필터링: 평점, 예산 범위 등
         // TODO: 데이트 유형에 맞는 카테고리 필터링 추가
         // TODO: 평점 4.0 이상, 리뷰 50개 이상 필터링 추가
+        // TODO: priceRange 파싱하여 예산 범위 필터링 추가
         List<Place> filtered = places.stream()
                 .filter(place -> {
-                    // 예산 범위 필터링 (±20% 허용)
-                    if (place.getAveragePrice() != null) {
-                        return place.getAveragePrice() >= minBudget * 0.8
-                                && place.getAveragePrice() <= maxBudget * 1.2;
-                    }
+                    // 현재는 priceRange가 String이므로 예산 필터링 스킵
+                    // 향후 priceRange 파싱 로직 추가 필요
                     return true;
                 })
                 .limit(20) // 상위 20개만 선택
@@ -113,7 +111,8 @@ public class CourseService {
 
         for (int i = 0; i < numPlaces; i++) {
             Place place = candidatePlaces.get(i);
-            int estimatedCost = place.getAveragePrice() != null ? place.getAveragePrice() : 30000;
+            // TODO: priceRange 파싱하여 정확한 금액 계산
+            int estimatedCost = 30000 + (i * 10000); // 임시: 30000, 40000, 50000
             int duration = 60 + (i * 30); // 60분, 90분, 120분
 
             totalCost += estimatedCost;
