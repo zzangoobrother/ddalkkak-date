@@ -37,6 +37,8 @@ CREATE TABLE IF NOT EXISTS places (
     price_range VARCHAR(50),
     best_time VARCHAR(50),
     recommendation TEXT,
+    rating DOUBLE PRECISION,
+    review_count INTEGER,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_places_region FOREIGN KEY (region_id) REFERENCES regions(id)
