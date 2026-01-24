@@ -2,13 +2,18 @@
 
 import { useEffect, useState } from "react";
 import CourseInputForm from "@/components/CourseInputForm";
+import CourseLoading from "@/components/CourseLoading";
+import CourseResult from "@/components/CourseResult";
 import { trackEvent, trackPageView } from "@/lib/analytics";
-import type { CourseInputData } from "@/types/course";
-import { DATE_TYPE_MAP, BUDGET_PRESET_MAP, REGION_MAP } from "@/lib/constants";
+import { generateCourse } from "@/lib/api";
+import type { CourseInputData, CourseResponse } from "@/types/course";
+
+type PageState = "input" | "loading" | "result" | "error";
 
 export default function Home() {
-  const [isCompleted, setIsCompleted] = useState(false);
-  const [completedData, setCompletedData] = useState<CourseInputData | null>(null);
+  const [pageState, setPageState] = useState<PageState>("input");
+  const [courseData, setCourseData] = useState<CourseResponse | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string>("");
 
   // 페이지 진입 시 Analytics 이벤트 전송
   useEffect(() => {
@@ -17,70 +22,97 @@ export default function Home() {
   }, []);
 
   // 코스 입력 완료 핸들러
-  const handleComplete = (data: CourseInputData) => {
-    setCompletedData(data);
-    setIsCompleted(true);
+  const handleComplete = async (data: CourseInputData) => {
+    setPageState("loading");
+    setErrorMessage("");
 
-    // TODO: 실제로는 여기서 코스 생성 API를 호출하거나
-    // 로딩 화면으로 전환해야 함
-    console.log("코스 입력 완료:", data);
+    try {
+      trackEvent("course_generation_started", {
+        region_id: data.regionId,
+        date_type_id: data.dateTypeId,
+        budget_preset_id: data.budget.presetId,
+      });
+
+      const response = await generateCourse(data);
+
+      setCourseData(response);
+      setPageState("result");
+
+      trackEvent("course_generation_completed", {
+        course_id: response.courseId,
+        total_budget: response.totalBudget,
+        total_duration: response.totalDurationMinutes,
+        place_count: response.places.length,
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "코스 생성에 실패했습니다.";
+      setErrorMessage(message);
+      setPageState("error");
+
+      trackEvent("course_generation_failed", {
+        error: message,
+      });
+    }
   };
 
   // 다시 시작하기
   const handleReset = () => {
-    setIsCompleted(false);
-    setCompletedData(null);
+    setPageState("input");
+    setCourseData(null);
+    setErrorMessage("");
     trackEvent("course_input_reset");
   };
 
-  // 완료 화면 (임시)
-  if (isCompleted && completedData) {
-    const region = REGION_MAP.get(completedData.regionId);
-    const dateType = DATE_TYPE_MAP.get(completedData.dateTypeId);
-    const budgetPreset = BUDGET_PRESET_MAP.get(completedData.budget.presetId);
+  // 재시도
+  const handleRetry = () => {
+    setPageState("input");
+    setErrorMessage("");
+    trackEvent("course_generation_retry");
+  };
 
+  // 상태별 화면 렌더링
+  if (pageState === "loading") {
+    return (
+      <main className="min-h-screen bg-background">
+        <CourseLoading />
+      </main>
+    );
+  }
+
+  if (pageState === "result" && courseData) {
+    return (
+      <main className="min-h-screen bg-background">
+        <CourseResult course={courseData} onReset={handleReset} />
+      </main>
+    );
+  }
+
+  if (pageState === "error") {
     return (
       <main className="min-h-screen bg-background flex items-center justify-center px-4">
         <div className="w-full max-w-lg text-center">
-          <div className="text-6xl mb-6">✨</div>
+          <div className="text-6xl mb-6">😢</div>
           <h1 className="text-2xl font-bold text-text-primary mb-4">
-            코스 생성 준비 완료!
+            코스 생성 실패
           </h1>
-          <div className="bg-card rounded-xl p-6 shadow-card mb-6 text-left space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-text-secondary">지역</span>
-              <span className="font-semibold text-text-primary">
-                {region?.emoji} {region?.name}
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-text-secondary">데이트 유형</span>
-              <span className="font-semibold text-text-primary">
-                {dateType?.emoji} {dateType?.name}
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-text-secondary">예산</span>
-              <span className="font-semibold text-text-primary">
-                💰{" "}
-                {completedData.budget.presetId === "custom"
-                  ? `${((completedData.budget.customAmount || 50000) / 10000).toFixed(0)}만원`
-                  : budgetPreset?.label}
-              </span>
-            </div>
+          <p className="text-text-secondary mb-8">{errorMessage}</p>
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={handleRetry}
+              className="w-full py-4 rounded-xl font-semibold bg-primary text-white hover:bg-primary/90 transition-colors"
+            >
+              다시 시도하기
+            </button>
+            <button
+              type="button"
+              onClick={handleReset}
+              className="w-full py-4 rounded-xl font-semibold text-primary border-2 border-primary hover:bg-primary-light transition-colors"
+            >
+              처음으로 돌아가기
+            </button>
           </div>
-          <p className="text-sm text-text-secondary mb-6">
-            AI가 최적의 데이트 코스를 찾고 있어요...
-            <br />
-            (이 화면은 개발 중입니다)
-          </p>
-          <button
-            type="button"
-            onClick={handleReset}
-            className="w-full py-4 rounded-xl font-semibold text-primary border-2 border-primary hover:bg-primary-light transition-colors"
-          >
-            다시 선택하기
-          </button>
         </div>
       </main>
     );
