@@ -329,7 +329,7 @@ public class CourseService {
         }
 
         // 장소 ID가 후보 목록에 있는지 확인
-        List<String> candidatePlaceIds = candidatePlaces.stream()
+        List<Long> candidatePlaceIds = candidatePlaces.stream()
                 .map(Place::getId)
                 .toList();
 

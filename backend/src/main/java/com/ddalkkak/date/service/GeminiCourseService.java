@@ -1,7 +1,7 @@
 package com.ddalkkak.date.service;
 
-import com.ddalkkak.date.dto.ClaudeDto;
 import com.ddalkkak.date.dto.CoursePromptContext;
+import com.ddalkkak.date.dto.GeminiDto;
 import com.ddalkkak.date.dto.LlmCourseGenerationDto;
 import com.ddalkkak.date.entity.Place;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -17,42 +17,44 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Anthropic Claude 기반 코스 생성 서비스
+ * Google Gemini 기반 코스 생성 서비스
  */
 @Slf4j
 @Service
-public class ClaudeLlmService {
+public class GeminiCourseService {
 
     private final WebClient webClient;
     private final String model;
+    private final String apiKey;
     private final int timeoutSeconds;
     private final ObjectMapper objectMapper;
 
-    public ClaudeLlmService(
-            @Value("${external.claude.api-key:}") String apiKey,
-            @Value("${external.claude.api-url:https://api.anthropic.com}") String baseUrl,
-            @Value("${external.claude.model:claude-3-5-sonnet-20241022}") String model,
-            @Value("${external.claude.timeout-seconds:10}") int timeoutSeconds
+    public GeminiCourseService(
+            @Value("${external.gemini.api-key}") String apiKey,
+            @Value("${external.gemini.api-url}") String baseUrl,
+            @Value("${external.gemini.model:gemini-1.5-flash}") String model,
+            @Value("${external.gemini.timeout-seconds:10}") int timeoutSeconds
     ) {
+        this.apiKey = apiKey;
         this.model = model;
         this.timeoutSeconds = timeoutSeconds;
         this.objectMapper = new ObjectMapper();
         this.webClient = WebClient.builder()
                 .baseUrl(baseUrl)
-                .defaultHeader("x-api-key", apiKey)
-                .defaultHeader("anthropic-version", "2023-06-01")
                 .defaultHeader("Content-Type", "application/json")
                 .build();
+
+        log.info("GeminiCourseService initialized - model: {}", model);
     }
 
     /**
-     * Claude를 통한 코스 생성
+     * Google Gemini를 통한 코스 생성
      *
      * @param context 프롬프트 컨텍스트
      * @return 코스 생성 결과
      */
     public LlmCourseGenerationDto.CourseGenerationResult generateCourse(CoursePromptContext context) {
-        log.info("Claude 코스 생성 시작 - 지역: {}, 데이트 유형: {}, 후보 장소 수: {}",
+        log.info("Gemini 코스 생성 시작 - 지역: {}, 데이트 유형: {}, 후보 장소 수: {}",
                 context.getRegion().getName(),
                 context.getDateType().getName(),
                 context.getCandidatePlaces().size());
@@ -60,58 +62,84 @@ public class ClaudeLlmService {
         long startTime = System.currentTimeMillis();
 
         try {
-            // 프롬프트 생성
-            String userPrompt = buildCoursePrompt(context);
-            String systemPrompt = buildSystemPrompt();
+            // 시스템 + 사용자 프롬프트 통합 (Gemini는 하나의 프롬프트로 전달)
+            String combinedPrompt = buildSystemPrompt() + "\n\n" + buildCoursePrompt(context);
 
-            // API 요청 생성
-            ClaudeDto.Request request = new ClaudeDto.Request(
-                    model,
-                    List.of(new ClaudeDto.Message("user", userPrompt)),
-                    2000, // max_tokens
-                    0.7,
-                    systemPrompt
+            // Gemini API 요청 생성
+            GeminiDto.Request request = new GeminiDto.Request(
+                    List.of(new GeminiDto.Content(
+                            "user",
+                            List.of(new GeminiDto.Part(combinedPrompt))
+                    )),
+                    new GeminiDto.GenerationConfig(0.7, 2000, "application/json")
             );
 
-            // Claude API 호출
-            ClaudeDto.Response response = webClient.post()
-                    .uri("/v1/messages")
+            // API 키를 URI에 포함
+            String uri = String.format("/v1beta/models/%s:generateContent?key=%s", model, apiKey);
+
+            // Gemini API 호출
+            GeminiDto.Response response = webClient.post()
+                    .uri(uri)
                     .bodyValue(request)
                     .retrieve()
-                    .bodyToMono(ClaudeDto.Response.class)
+                    .bodyToMono(GeminiDto.Response.class)
                     .timeout(Duration.ofSeconds(timeoutSeconds))
-                    .doOnError(error -> log.error("Claude API 호출 실패: {}", error.getMessage()))
+                    .doOnError(error -> log.error("Gemini API 호출 실패: {}", error.getMessage()))
                     .onErrorResume(error -> Mono.empty())
                     .block();
 
-            if (response != null && response.getContent() != null && !response.getContent().isEmpty()) {
-                String jsonResponse = response.getContent().get(0).getText();
-                log.debug("Claude API 응답: {}", jsonResponse);
+            if (response != null && response.getCandidates() != null && !response.getCandidates().isEmpty()) {
+                GeminiDto.Candidate candidate = response.getCandidates().get(0);
 
-                // 토큰 사용량 로그
-                if (response.getUsage() != null) {
-                    log.info("토큰 사용량 - Input: {}, Output: {}",
-                            response.getUsage().getInputTokens(),
-                            response.getUsage().getOutputTokens());
+                // MAX_TOKENS 에러 체크
+                if ("MAX_TOKENS".equals(candidate.getFinishReason())) {
+                    log.error("응답이 토큰 제한으로 잘렸음");
+                    return null;
                 }
 
+                String jsonResponse = candidate.getContent().getParts().get(0).getText();
+                log.debug("Gemini API 응답: {}", jsonResponse);
+
+                // 토큰 사용량 로그
+                if (response.getUsageMetadata() != null) {
+                    log.info("토큰 사용량 - Prompt: {}, Candidates: {}, Total: {}",
+                            response.getUsageMetadata().getPromptTokenCount(),
+                            response.getUsageMetadata().getCandidatesTokenCount(),
+                            response.getUsageMetadata().getTotalTokenCount());
+                }
+
+                // JSON 추출 (Gemini가 JSON 외 텍스트를 포함할 수 있음)
+                String cleanedJson = extractJsonFromResponse(jsonResponse);
+
                 // JSON 파싱
-                LlmCourseGenerationDto.CourseGenerationResult result = parseJsonResponse(jsonResponse);
+                LlmCourseGenerationDto.CourseGenerationResult result = parseJsonResponse(cleanedJson);
 
                 long duration = System.currentTimeMillis() - startTime;
-                log.info("Claude 코스 생성 성공 - 소요 시간: {}ms", duration);
+                log.info("Gemini 코스 생성 성공 - 소요 시간: {}ms", duration);
 
                 return result;
             }
 
-            log.warn("Claude API 응답이 비어있음");
+            log.warn("Gemini API 응답이 비어있음");
             return null;
 
         } catch (Exception e) {
             long duration = System.currentTimeMillis() - startTime;
-            log.error("Claude 코스 생성 실패 - 소요 시간: {}ms, 에러: {}", duration, e.getMessage(), e);
+            log.error("Gemini 코스 생성 실패 - 소요 시간: {}ms, 에러: {}", duration, e.getMessage(), e);
             return null;
         }
+    }
+
+    /**
+     * 응답에서 JSON 추출 (안전장치)
+     */
+    private String extractJsonFromResponse(String response) {
+        int start = response.indexOf('{');
+        int end = response.lastIndexOf('}');
+        if (start >= 0 && end >= 0 && end > start) {
+            return response.substring(start, end + 1);
+        }
+        return response;
     }
 
     /**
@@ -129,7 +157,7 @@ public class ClaudeLlmService {
                 4. 데이트 유형에 맞는 분위기 및 순서
                 5. 총 소요 시간: 2-4시간 권장
 
-                응답은 반드시 순수 JSON 형식만 사용하고, 다른 텍스트는 포함하지 마세요.
+                응답 형식: 반드시 JSON 형식만 사용
                 """;
     }
 
@@ -159,7 +187,7 @@ public class ClaudeLlmService {
                 - 이동 수단과 시간 안내 (도보, 택시, 대중교통 등)
                 - 동선을 고려한 순서 배치 (위도/경도 정보 활용)
 
-                JSON 응답 스키마 (다른 텍스트 없이 JSON만 반환):
+                JSON 응답 스키마:
                 {
                   "course_name": "코스 이름 (예: 홍대 감성 카페 데이트)",
                   "description": "코스 설명 (2-3 문장, 전체적인 분위기와 특징)",
@@ -221,32 +249,15 @@ public class ClaudeLlmService {
     }
 
     /**
-     * Claude 응답 JSON 파싱
+     * Gemini 응답 JSON 파싱
      */
     private LlmCourseGenerationDto.CourseGenerationResult parseJsonResponse(String jsonResponse) {
         try {
-            // Claude가 JSON 외에 추가 텍스트를 포함할 수 있으므로 JSON 부분만 추출
-            String cleanedJson = extractJsonFromResponse(jsonResponse);
-            return objectMapper.readValue(cleanedJson, LlmCourseGenerationDto.CourseGenerationResult.class);
+            return objectMapper.readValue(jsonResponse, LlmCourseGenerationDto.CourseGenerationResult.class);
         } catch (JsonProcessingException e) {
             log.error("JSON 파싱 실패: {}", e.getMessage());
             log.debug("원본 JSON: {}", jsonResponse);
             return null;
         }
-    }
-
-    /**
-     * 응답에서 JSON 부분만 추출
-     */
-    private String extractJsonFromResponse(String response) {
-        // 간단한 휴리스틱: { 로 시작하고 } 로 끝나는 부분 추출
-        int start = response.indexOf('{');
-        int end = response.lastIndexOf('}');
-
-        if (start >= 0 && end >= 0 && end > start) {
-            return response.substring(start, end + 1);
-        }
-
-        return response;
     }
 }

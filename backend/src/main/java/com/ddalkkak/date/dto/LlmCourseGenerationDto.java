@@ -140,7 +140,7 @@ public class LlmCourseGenerationDto {
          * 장소 ID (후보 장소 목록의 ID와 매칭)
          */
         @JsonProperty("place_id")
-        private String placeId;
+        private Long placeId;
 
         /**
          * 방문 순서 (1부터 시작)
