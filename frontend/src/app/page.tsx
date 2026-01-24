@@ -5,14 +5,17 @@ import CourseInputForm from "@/components/CourseInputForm";
 import CourseLoading from "@/components/CourseLoading";
 import CourseResult from "@/components/CourseResult";
 import { trackEvent, trackPageView } from "@/lib/analytics";
-import { generateCourse } from "@/lib/api";
+import { generateMultipleCourses, generateMoreCourses } from "@/lib/api";
 import type { CourseInputData, CourseResponse } from "@/types/course";
 
 type PageState = "input" | "loading" | "result" | "error";
 
 export default function Home() {
   const [pageState, setPageState] = useState<PageState>("input");
-  const [courseData, setCourseData] = useState<CourseResponse | null>(null);
+  const [courseData, setCourseData] = useState<CourseResponse[]>([]);
+  const [lastInputData, setLastInputData] = useState<CourseInputData | null>(
+    null
+  );
   const [errorMessage, setErrorMessage] = useState<string>("");
 
   // 페이지 진입 시 Analytics 이벤트 전송
@@ -25,6 +28,7 @@ export default function Home() {
   const handleComplete = async (data: CourseInputData) => {
     setPageState("loading");
     setErrorMessage("");
+    setLastInputData(data);
 
     try {
       trackEvent("course_generation_started", {
@@ -33,16 +37,20 @@ export default function Home() {
         budget_preset_id: data.budget.presetId,
       });
 
-      const response = await generateCourse(data);
+      // 3개의 코스 생성
+      const responses = await generateMultipleCourses(data);
 
-      setCourseData(response);
+      setCourseData(responses);
       setPageState("result");
 
       trackEvent("course_generation_completed", {
-        course_id: response.courseId,
-        total_budget: response.totalBudget,
-        total_duration: response.totalDurationMinutes,
-        place_count: response.places.length,
+        course_count: responses.length,
+        total_budget_avg:
+          responses.reduce((sum, c) => sum + c.totalBudget, 0) /
+          responses.length,
+        total_duration_avg:
+          responses.reduce((sum, c) => sum + c.totalDurationMinutes, 0) /
+          responses.length,
       });
     } catch (error) {
       const message =
@@ -59,7 +67,8 @@ export default function Home() {
   // 다시 시작하기
   const handleReset = () => {
     setPageState("input");
-    setCourseData(null);
+    setCourseData([]);
+    setLastInputData(null);
     setErrorMessage("");
     trackEvent("course_input_reset");
   };
@@ -71,6 +80,41 @@ export default function Home() {
     trackEvent("course_generation_retry");
   };
 
+  // 더 추천받기
+  const handleGenerateMore = async () => {
+    if (!lastInputData) return;
+
+    setPageState("loading");
+    setErrorMessage("");
+
+    try {
+      trackEvent("course_generation_more_started");
+
+      // 추가 코스 생성
+      const newCourse = await generateMoreCourses(lastInputData);
+
+      // 기존 코스에 추가 (최대 3개 유지)
+      setCourseData((prev) => {
+        const updated = [...prev, newCourse];
+        return updated.slice(-3); // 최근 3개만 유지
+      });
+      setPageState("result");
+
+      trackEvent("course_generation_more_completed");
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "추가 코스 생성에 실패했습니다.";
+      setErrorMessage(message);
+      setPageState("error");
+
+      trackEvent("course_generation_more_failed", {
+        error: message,
+      });
+    }
+  };
+
   // 상태별 화면 렌더링
   if (pageState === "loading") {
     return (
@@ -80,10 +124,14 @@ export default function Home() {
     );
   }
 
-  if (pageState === "result" && courseData) {
+  if (pageState === "result" && courseData.length > 0) {
     return (
       <main className="min-h-screen bg-background">
-        <CourseResult course={courseData} onReset={handleReset} />
+        <CourseResult
+          courses={courseData}
+          onReset={handleReset}
+          onGenerateMore={handleGenerateMore}
+        />
       </main>
     );
   }

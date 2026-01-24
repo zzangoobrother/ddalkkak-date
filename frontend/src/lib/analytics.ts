@@ -26,7 +26,16 @@ export type AnalyticsEvent =
   | "course_input_started"
   | "course_input_completed"
   | "course_input_reset"
-  | "course_generation_requested";
+  | "course_generation_requested"
+  // 코스 생성 관련
+  | "course_generation_started"
+  | "course_generation_completed"
+  | "course_generation_failed"
+  | "course_generation_retry"
+  // 추가 코스 생성 관련
+  | "course_generation_more_started"
+  | "course_generation_more_completed"
+  | "course_generation_more_failed";
 
 // 이벤트 속성 타입
 export interface AnalyticsEventProperties {
