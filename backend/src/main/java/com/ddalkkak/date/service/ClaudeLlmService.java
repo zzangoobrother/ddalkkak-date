@@ -193,7 +193,7 @@ public class ClaudeLlmService {
      */
     private String placeToJsonString(Place place) {
         return String.format(
-                "{ \"id\": \"%s\", \"name\": \"%s\", \"category\": \"%s\", \"rating\": %.1f, \"review_count\": %d, \"price_range\": \"%s\", \"address\": \"%s\", \"latitude\": %.6f, \"longitude\": %.6f }",
+                "{ \"id\": %d, \"name\": \"%s\", \"category\": \"%s\", \"rating\": %.1f, \"review_count\": %d, \"price_range\": \"%s\", \"address\": \"%s\", \"latitude\": %.6f, \"longitude\": %.6f }",
                 place.getId(),
                 escapeJson(place.getName()),
                 escapeJson(place.getCategory()),
