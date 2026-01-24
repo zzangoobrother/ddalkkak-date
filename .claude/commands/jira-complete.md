@@ -35,20 +35,35 @@ PR을 머지하고 JIRA 티켓을 완료 처리합니다.
    git pull origin main
    ```
 
-7. JIRA 티켓 완료 안내:
-   - JIRA 티켓 번호 추출
-   - 사용자에게 JIRA에서 티켓을 "완료" 상태로 변경하도록 안내
-   - 테스트 결과를 JIRA 티켓 코멘트에 추가하도록 안내
+7. 테스트 결과를 JIRA 티켓 코멘트에 추가:
+   - JIRA 티켓 번호 추출 (브랜치명 또는 커밋 메시지에서)
+   - 테스트 결과 요약 작성
+   - JIRA API를 통해 코멘트 추가:
+     ```
+     mcp__atlassian__addCommentToJiraIssue
+     - cloudId: (Atlassian Cloud ID)
+     - issueIdOrKey: (티켓 번호)
+     - commentBody: (테스트 결과 마크다운)
+     ```
 
-8. 작업 완료 요약:
+8. JIRA 티켓 완료 처리:
+   - 사용 가능한 전환(transition) 조회:
+     ```
+     mcp__atlassian__getTransitionsForJiraIssue
+     ```
+   - "완료" 상태로 전환:
+     ```
+     mcp__atlassian__transitionJiraIssue
+     - transition: {"id": "완료 전환 ID"}
+     ```
+
+9. 작업 완료 요약:
    ```
    ✅ PR이 main 브랜치에 머지되었습니다.
    ✅ 작업 브랜치가 삭제되었습니다.
    ✅ 로컬 main 브랜치가 업데이트되었습니다.
-
-   다음 작업:
-   1. JIRA에서 [티켓번호] 티켓을 "완료" 상태로 변경
-   2. 테스트 결과를 JIRA 티켓 코멘트에 기록
+   ✅ JIRA 티켓에 테스트 결과 코멘트가 추가되었습니다.
+   ✅ JIRA 티켓이 "완료" 상태로 변경되었습니다.
 
    새로운 작업을 시작하려면 /jira-start 명령어를 사용하세요.
    ```
