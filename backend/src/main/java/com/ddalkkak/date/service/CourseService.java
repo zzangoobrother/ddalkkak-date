@@ -1,8 +1,11 @@
 package com.ddalkkak.date.service;
 
 import com.ddalkkak.date.dto.*;
+import com.ddalkkak.date.entity.Course;
+import com.ddalkkak.date.entity.CoursePlace;
 import com.ddalkkak.date.entity.Place;
 import com.ddalkkak.date.entity.Region;
+import com.ddalkkak.date.repository.CourseRepository;
 import com.ddalkkak.date.repository.PlaceRepository;
 import com.ddalkkak.date.repository.RegionRepository;
 import lombok.RequiredArgsConstructor;
@@ -25,13 +28,14 @@ public class CourseService {
 
     private final PlaceRepository placeRepository;
     private final RegionRepository regionRepository;
+    private final CourseRepository courseRepository;
     private final LlmStrategyManager llmStrategyManager;
     private final FallbackTemplateService fallbackTemplateService;
 
     /**
      * 코스 생성
      */
-    @Transactional(readOnly = true)
+    @Transactional
     public CourseResponse generateCourse(CourseGenerationRequest request) {
         long startTime = System.currentTimeMillis();
 
@@ -59,12 +63,30 @@ public class CourseService {
             log.info("필터링된 후보 장소 수: {}", candidatePlaces.size());
 
             // 4. LLM을 통한 코스 생성
-            CourseResponse course = generateCourseWithLlm(region, dateType, candidatePlaces, minBudget, maxBudget, request);
+            CourseResponse courseResponse = generateCourseWithLlm(region, dateType, candidatePlaces, minBudget, maxBudget, request);
+
+            // 5. 코스를 DB에 저장
+            Course savedCourse = saveCourse(courseResponse);
+
+            // 6. 저장된 코스 정보로 응답 업데이트
+            courseResponse = CourseResponse.builder()
+                    .courseId(savedCourse.getCourseId())
+                    .courseName(courseResponse.getCourseName())
+                    .regionId(courseResponse.getRegionId())
+                    .regionName(courseResponse.getRegionName())
+                    .dateTypeId(courseResponse.getDateTypeId())
+                    .dateTypeName(courseResponse.getDateTypeName())
+                    .totalDurationMinutes(courseResponse.getTotalDurationMinutes())
+                    .totalBudget(courseResponse.getTotalBudget())
+                    .description(courseResponse.getDescription())
+                    .places(courseResponse.getPlaces())
+                    .createdAt(savedCourse.getCreatedAt().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli())
+                    .build();
 
             long duration = System.currentTimeMillis() - startTime;
-            log.info("코스 생성 완료 - 소요 시간: {}ms", duration);
+            log.info("코스 생성 및 저장 완료 - 코스 ID: {}, 소요 시간: {}ms", savedCourse.getCourseId(), duration);
 
-            return course;
+            return courseResponse;
 
         } catch (Exception e) {
             long duration = System.currentTimeMillis() - startTime;
@@ -451,6 +473,96 @@ public class CourseService {
                 .description(dateType.getDescription() + " 코스입니다.") // TODO: LLM으로 생성
                 .places(places)
                 .createdAt(System.currentTimeMillis())
+                .build();
+    }
+
+    /**
+     * 코스를 DB에 저장
+     */
+    @Transactional
+    public Course saveCourse(CourseResponse courseResponse) {
+        // Course 엔티티 생성
+        Course course = Course.builder()
+                .courseId(courseResponse.getCourseId())
+                .courseName(courseResponse.getCourseName())
+                .regionId(courseResponse.getRegionId())
+                .dateTypeId(courseResponse.getDateTypeId())
+                .totalDurationMinutes(courseResponse.getTotalDurationMinutes())
+                .totalBudget(courseResponse.getTotalBudget())
+                .description(courseResponse.getDescription())
+                .userId(null) // 현재는 비로그인 사용자 (나중에 userId 추가)
+                .build();
+
+        // CoursePlace 엔티티 생성 및 추가
+        for (PlaceInCourseDto placeDto : courseResponse.getPlaces()) {
+            Place place = placeRepository.findById(placeDto.getPlaceId())
+                    .orElseThrow(() -> new IllegalArgumentException("장소를 찾을 수 없음: " + placeDto.getPlaceId()));
+
+            CoursePlace coursePlace = CoursePlace.builder()
+                    .place(place)
+                    .sequence(placeDto.getSequence())
+                    .durationMinutes(placeDto.getDurationMinutes())
+                    .estimatedCost(placeDto.getEstimatedCost())
+                    .recommendedMenu(placeDto.getRecommendedMenu())
+                    .transportToNext(placeDto.getTransportToNext())
+                    .build();
+
+            course.addCoursePlace(coursePlace);
+        }
+
+        // DB에 저장
+        Course savedCourse = courseRepository.save(course);
+        log.info("코스 저장 완료 - 코스 ID: {}", savedCourse.getCourseId());
+
+        return savedCourse;
+    }
+
+    /**
+     * courseId로 코스 조회
+     */
+    @Transactional(readOnly = true)
+    public CourseResponse getCourseById(String courseId) {
+        // Course 조회
+        Course course = courseRepository.findByCourseId(courseId)
+                .orElseThrow(() -> new IllegalArgumentException("코스를 찾을 수 없음: " + courseId));
+
+        // Region 조회
+        Region region = regionRepository.findById(course.getRegionId())
+                .orElseThrow(() -> new IllegalArgumentException("지역을 찾을 수 없음: " + course.getRegionId()));
+
+        // DateType 파싱
+        DateType dateType = DateType.fromId(course.getDateTypeId());
+
+        // CoursePlace -> PlaceInCourseDto 변환
+        List<PlaceInCourseDto> places = course.getCoursePlaces().stream()
+                .map(cp -> PlaceInCourseDto.builder()
+                        .placeId(cp.getPlace().getId())
+                        .name(cp.getPlace().getName())
+                        .category(cp.getPlace().getCategory())
+                        .address(cp.getPlace().getAddress())
+                        .latitude(cp.getPlace().getLatitude())
+                        .longitude(cp.getPlace().getLongitude())
+                        .durationMinutes(cp.getDurationMinutes())
+                        .estimatedCost(cp.getEstimatedCost())
+                        .recommendedMenu(cp.getRecommendedMenu())
+                        .sequence(cp.getSequence())
+                        .transportToNext(cp.getTransportToNext())
+                        .build())
+                .collect(Collectors.toList());
+
+        // CourseResponse 생성
+        return CourseResponse.builder()
+                .courseId(course.getCourseId())
+                .courseName(course.getCourseName())
+                .regionId(course.getRegionId())
+                .regionName(region.getName())
+                .dateTypeId(course.getDateTypeId())
+                .dateTypeName(dateType.getName())
+                .totalDurationMinutes(course.getTotalDurationMinutes())
+                .totalBudget(course.getTotalBudget())
+                .description(course.getDescription())
+                .places(places)
+                .createdAt(course.getCreatedAt().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli())
                 .build();
     }
 }

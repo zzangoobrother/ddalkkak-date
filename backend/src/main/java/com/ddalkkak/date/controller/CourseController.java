@@ -9,10 +9,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
 
 /**
  * 코스 생성 API 컨트롤러
@@ -43,6 +41,21 @@ public class CourseController {
 
         long duration = System.currentTimeMillis() - startTime;
         log.info("코스 생성 완료 - 코스 ID: {}, 소요 시간: {}ms", response.getCourseId(), duration);
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 코스 상세 조회
+     */
+    @Operation(summary = "코스 조회", description = "코스 ID로 코스 상세 정보를 조회합니다")
+    @GetMapping("/{courseId}")
+    public ResponseEntity<CourseResponse> getCourse(@PathVariable String courseId) {
+        log.info("코스 조회 요청 - 코스 ID: {}", courseId);
+
+        CourseResponse response = courseService.getCourseById(courseId);
+
+        log.info("코스 조회 완료 - 코스 ID: {}, 장소 수: {}", courseId, response.getPlaces().size());
 
         return ResponseEntity.ok(response);
     }
