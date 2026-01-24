@@ -8,14 +8,14 @@ import org.springframework.stereotype.Service;
 
 /**
  * LLM 전략 관리자
- * Primary (OpenAI) → Fallback 1 (Claude) → Fallback 2 (Template)
+ * Primary (Gemini) → Fallback 1 (Claude) → Fallback 2 (Template)
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class LlmStrategyManager {
 
-    private final OpenAiCourseService openAiCourseService;
+    private final GeminiCourseService geminiCourseService;
     private final ClaudeLlmService claudeLlmService;
 
     /**
@@ -27,20 +27,20 @@ public class LlmStrategyManager {
     public LlmCourseGenerationDto.CourseGenerationResult generateCourseWithFallback(
             CoursePromptContext context
     ) {
-        // 1. Primary: OpenAI GPT-4
-        log.info("Primary LLM 시도: OpenAI GPT-4");
+        // 1. Primary: Google Gemini
+        log.info("Primary LLM 시도: Google Gemini");
         try {
             LlmCourseGenerationDto.CourseGenerationResult result =
-                    openAiCourseService.generateCourse(context);
+                    geminiCourseService.generateCourse(context);
 
             if (result != null) {
-                log.info("OpenAI 코스 생성 성공");
+                log.info("Gemini 코스 생성 성공");
                 return result;
             }
 
-            log.warn("OpenAI 응답이 null, Fallback으로 전환");
+            log.warn("Gemini 응답이 null, Fallback으로 전환");
         } catch (Exception e) {
-            log.warn("OpenAI 코스 생성 실패, Fallback으로 전환: {}", e.getMessage());
+            log.warn("Gemini 코스 생성 실패, Fallback으로 전환: {}", e.getMessage());
         }
 
         // 2. Fallback 1: Claude
@@ -75,20 +75,20 @@ public class LlmStrategyManager {
             CoursePromptContext context,
             java.util.function.Predicate<LlmCourseGenerationDto.CourseGenerationResult> validator
     ) {
-        // 1. Primary: OpenAI GPT-4
-        log.info("Primary LLM 시도: OpenAI GPT-4");
+        // 1. Primary: Google Gemini
+        log.info("Primary LLM 시도: Google Gemini");
         try {
             LlmCourseGenerationDto.CourseGenerationResult result =
-                    openAiCourseService.generateCourse(context);
+                    geminiCourseService.generateCourse(context);
 
             if (result != null && validator.test(result)) {
-                log.info("OpenAI 코스 생성 성공 및 검증 통과");
+                log.info("Gemini 코스 생성 성공 및 검증 통과");
                 return result;
             }
 
-            log.warn("OpenAI 응답 검증 실패, Fallback으로 전환");
+            log.warn("Gemini 응답 검증 실패, Fallback으로 전환");
         } catch (Exception e) {
-            log.warn("OpenAI 코스 생성 실패, Fallback으로 전환: {}", e.getMessage());
+            log.warn("Gemini 코스 생성 실패, Fallback으로 전환: {}", e.getMessage());
         }
 
         // 2. Fallback 1: Claude

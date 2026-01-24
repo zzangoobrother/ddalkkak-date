@@ -67,11 +67,22 @@ external:
   kakao:
     api-key: ${KAKAO_REST_API_KEY:0ac2b0019712853b21e9b5f326fa064d}
     local-api-url: https://dapi.kakao.com/v2/local
-  openai:
-    api-key: ${OPENAI_API_KEY:}
-    api-url: https://api.openai.com/v1
-    model: gpt-4-turbo-preview
+
+  # Google Gemini API (Primary LLM)
+  gemini:
+    api-key: ${GEMINI_API_KEY:}
+    api-url: https://generativelanguage.googleapis.com
+    model: gemini-1.5-flash
     timeout-seconds: 10
+
+  # OpenAI API (사용 안 함, 롤백 대비 보관)
+  # openai:
+  #   api-key: ${OPENAI_API_KEY:}
+  #   api-url: https://api.openai.com/v1
+  #   model: gpt-4-turbo-preview
+  #   timeout-seconds: 10
+
+  # Anthropic Claude API (Fallback LLM)
   claude:
     api-key: ${ANTHROPIC_API_KEY:}
     api-url: https://api.anthropic.com
