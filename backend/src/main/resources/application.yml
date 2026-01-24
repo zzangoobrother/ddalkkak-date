@@ -70,3 +70,10 @@ external:
   openai:
     api-key: ${OPENAI_API_KEY:}
     api-url: https://api.openai.com/v1
+    model: gpt-4-turbo-preview
+    timeout-seconds: 10
+  claude:
+    api-key: ${ANTHROPIC_API_KEY:}
+    api-url: https://api.anthropic.com
+    model: claude-3-5-sonnet-20241022
+    timeout-seconds: 10

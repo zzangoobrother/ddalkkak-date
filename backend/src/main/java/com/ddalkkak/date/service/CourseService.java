@@ -25,6 +25,8 @@ public class CourseService {
 
     private final PlaceRepository placeRepository;
     private final RegionRepository regionRepository;
+    private final LlmStrategyManager llmStrategyManager;
+    private final FallbackTemplateService fallbackTemplateService;
 
     /**
      * 코스 생성
@@ -56,9 +58,8 @@ public class CourseService {
 
             log.info("필터링된 후보 장소 수: {}", candidatePlaces.size());
 
-            // 4. LLM을 통한 코스 생성 (현재는 임시 구현)
-            // TODO: LLM 통합 후 실제 AI 기반 코스 생성 로직 추가
-            CourseResponse course = buildMockCourse(region, dateType, candidatePlaces, minBudget, maxBudget);
+            // 4. LLM을 통한 코스 생성
+            CourseResponse course = generateCourseWithLlm(region, dateType, candidatePlaces, minBudget, maxBudget, request);
 
             long duration = System.currentTimeMillis() - startTime;
             log.info("코스 생성 완료 - 소요 시간: {}ms", duration);
@@ -242,7 +243,166 @@ public class CourseService {
     }
 
     /**
-     * 임시 코스 생성 (LLM 통합 전까지 사용)
+     * LLM을 통한 코스 생성 (OpenAI 우선, 실패 시 Mock 코스 반환)
+     */
+    private CourseResponse generateCourseWithLlm(
+            Region region,
+            DateType dateType,
+            List<Place> candidatePlaces,
+            int minBudget,
+            int maxBudget,
+            CourseGenerationRequest request
+    ) {
+        // 1. 프롬프트 컨텍스트 생성
+        CoursePromptContext context = CoursePromptContext.builder()
+                .region(region)
+                .dateType(dateType)
+                .candidatePlaces(candidatePlaces)
+                .minBudget(minBudget)
+                .maxBudget(maxBudget)
+                .build();
+
+        // 2. LLM 호출 (OpenAI → Claude → Template 전략)
+        try {
+            LlmCourseGenerationDto.CourseGenerationResult result =
+                    llmStrategyManager.generateCourseWithValidation(
+                            context,
+                            r -> validateLlmResult(r, candidatePlaces, minBudget, maxBudget)
+                    );
+
+            // 3. 응답 검증 성공 시 매핑
+            if (result != null) {
+                log.info("LLM 코스 생성 및 검증 성공");
+                return mapLlmResultToCourseResponse(result, region, dateType);
+            }
+
+            log.warn("모든 LLM 실패 또는 검증 실패, 템플릿 사용");
+        } catch (Exception e) {
+            log.warn("LLM 코스 생성 중 에러 발생, 템플릿 사용: {}", e.getMessage());
+        }
+
+        // 4. Fallback: 템플릿 기반 코스
+        log.info("Fallback 템플릿 사용");
+        CourseResponse templateResponse = fallbackTemplateService.getPrebuiltCourse(
+                request.getRegionId(),
+                request.getDateTypeId(),
+                candidatePlaces
+        );
+
+        // Region 이름 추가 (템플릿에는 없음)
+        templateResponse = CourseResponse.builder()
+                .courseId(templateResponse.getCourseId())
+                .courseName(templateResponse.getCourseName())
+                .regionId(templateResponse.getRegionId())
+                .regionName(region.getName()) // Region 이름 설정
+                .dateTypeId(templateResponse.getDateTypeId())
+                .dateTypeName(templateResponse.getDateTypeName())
+                .totalDurationMinutes(templateResponse.getTotalDurationMinutes())
+                .totalBudget(templateResponse.getTotalBudget())
+                .description(templateResponse.getDescription())
+                .places(templateResponse.getPlaces())
+                .createdAt(templateResponse.getCreatedAt())
+                .build();
+
+        return templateResponse;
+    }
+
+    /**
+     * LLM 응답 검증
+     */
+    private boolean validateLlmResult(
+            LlmCourseGenerationDto.CourseGenerationResult result,
+            List<Place> candidatePlaces,
+            int minBudget,
+            int maxBudget
+    ) {
+        // 필수 필드 검증
+        if (result.getPlaces() == null || result.getPlaces().isEmpty()) {
+            log.warn("LLM 응답에 장소 정보 없음");
+            return false;
+        }
+
+        // 장소 개수 검증 (2-3개)
+        if (result.getPlaces().size() < 2 || result.getPlaces().size() > 3) {
+            log.warn("LLM 응답 장소 개수 부적절: {}", result.getPlaces().size());
+            return false;
+        }
+
+        // 장소 ID가 후보 목록에 있는지 확인
+        List<String> candidatePlaceIds = candidatePlaces.stream()
+                .map(Place::getId)
+                .toList();
+
+        for (LlmCourseGenerationDto.PlaceInCourse place : result.getPlaces()) {
+            if (!candidatePlaceIds.contains(place.getPlaceId())) {
+                log.warn("LLM 응답에 후보 목록에 없는 장소 ID 포함: {}", place.getPlaceId());
+                return false;
+            }
+        }
+
+        // 예산 범위 검증 (±20% 허용)
+        if (result.getTotalBudget() != null) {
+            int adjustedMaxBudget = (int) (maxBudget * 1.2);
+            if (result.getTotalBudget() > adjustedMaxBudget) {
+                log.warn("LLM 응답 예산 초과: {}원 (최대 {}원)", result.getTotalBudget(), adjustedMaxBudget);
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * LLM 응답을 CourseResponse로 매핑
+     */
+    private CourseResponse mapLlmResultToCourseResponse(
+            LlmCourseGenerationDto.CourseGenerationResult result,
+            Region region,
+            DateType dateType
+    ) {
+        String courseId = "course-" + UUID.randomUUID().toString().substring(0, 8);
+
+        // Place 엔티티 정보를 포함한 PlaceInCourseDto 생성
+        List<PlaceInCourseDto> places = result.getPlaces().stream()
+                .map(llmPlace -> {
+                    // Place 엔티티 조회
+                    Place place = placeRepository.findById(llmPlace.getPlaceId())
+                            .orElseThrow(() -> new IllegalArgumentException(
+                                    "장소를 찾을 수 없음: " + llmPlace.getPlaceId()));
+
+                    return PlaceInCourseDto.builder()
+                            .placeId(place.getId())
+                            .name(place.getName())
+                            .category(place.getCategory())
+                            .address(place.getAddress())
+                            .latitude(place.getLatitude())
+                            .longitude(place.getLongitude())
+                            .durationMinutes(llmPlace.getDurationMinutes())
+                            .estimatedCost(llmPlace.getEstimatedCost())
+                            .recommendedMenu(llmPlace.getRecommendedMenu())
+                            .sequence(llmPlace.getSequence())
+                            .transportToNext(llmPlace.getTransportToNext())
+                            .build();
+                })
+                .collect(Collectors.toList());
+
+        return CourseResponse.builder()
+                .courseId(courseId)
+                .courseName(result.getCourseName())
+                .regionId(region.getId())
+                .regionName(region.getName())
+                .dateTypeId(dateType.getId())
+                .dateTypeName(dateType.getName())
+                .totalDurationMinutes(result.getTotalDurationMinutes())
+                .totalBudget(result.getTotalBudget())
+                .description(result.getDescription())
+                .places(places)
+                .createdAt(System.currentTimeMillis())
+                .build();
+    }
+
+    /**
+     * 임시 코스 생성 (Fallback용)
      */
     private CourseResponse buildMockCourse(Region region, DateType dateType,
                                            List<Place> candidatePlaces, int minBudget, int maxBudget) {
