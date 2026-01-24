@@ -59,3 +59,33 @@ export interface CourseInputState {
   dateTypeId: DateTypeId | null;
   budget: BudgetSelection | null;
 }
+
+// 코스 내 장소 정보
+export interface PlaceInCourse {
+  placeId: number;
+  name: string;
+  category: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  durationMinutes: number;
+  estimatedCost: number;
+  recommendedMenu: string;
+  sequence: number;
+  transportToNext: string;
+}
+
+// 코스 생성 응답
+export interface CourseResponse {
+  courseId: string;
+  courseName: string;
+  regionId: string;
+  regionName: string;
+  dateTypeId: string;
+  dateTypeName: string;
+  totalDurationMinutes: number;
+  totalBudget: number;
+  description: string;
+  places: PlaceInCourse[];
+  createdAt: number;
+}

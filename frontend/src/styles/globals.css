@@ -24,4 +24,18 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+
+  /* 로딩 애니메이션 */
+  @keyframes loading-bar {
+    0% {
+      width: 0%;
+    }
+    100% {
+      width: 100%;
+    }
+  }
+
+  .animate-loading-bar {
+    animation: loading-bar 15s ease-in-out infinite;
+  }
 }
