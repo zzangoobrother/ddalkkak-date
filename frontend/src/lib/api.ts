@@ -38,3 +38,24 @@ export async function generateCourse(
   const data = await response.json();
   return data;
 }
+
+/**
+ * 추가 코스 추천 API 호출 (더 추천받기)
+ */
+export async function generateMoreCourses(
+  inputData: CourseInputData
+): Promise<CourseResponse> {
+  // 동일한 입력으로 새로운 코스 생성
+  return generateCourse(inputData);
+}
+
+/**
+ * 여러 코스를 한 번에 생성 (3개)
+ */
+export async function generateMultipleCourses(
+  inputData: CourseInputData
+): Promise<CourseResponse[]> {
+  // 병렬로 3개의 코스 생성 요청
+  const promises = Array.from({ length: 3 }, () => generateCourse(inputData));
+  return Promise.all(promises);
+}
