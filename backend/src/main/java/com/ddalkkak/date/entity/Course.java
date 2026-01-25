@@ -105,4 +105,11 @@ public class Course {
         coursePlaces.add(coursePlace);
         coursePlace.setCourse(this);
     }
+
+    /**
+     * userId 설정 (코스 저장 시 사용)
+     */
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
 }

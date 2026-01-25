@@ -59,3 +59,66 @@ export async function generateMultipleCourses(
   const promises = Array.from({ length: 3 }, () => generateCourse(inputData));
   return Promise.all(promises);
 }
+
+/**
+ * 임시 사용자 ID 관리 (localStorage 기반)
+ * SCRUM-10에서 실제 인증으로 교체 예정
+ */
+function getUserId(): string {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  let userId = localStorage.getItem("temp_user_id");
+  if (!userId) {
+    // UUID 생성
+    userId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    localStorage.setItem("temp_user_id", userId);
+  }
+  return userId;
+}
+
+/**
+ * 코스 저장 API 호출
+ */
+export async function saveCourse(courseId: string): Promise<void> {
+  const userId = getUserId();
+
+  const response = await fetch(`${API_BASE_URL}/courses/${courseId}/save`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-User-Id": userId,
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || `코스 저장 실패: ${response.statusText}`);
+  }
+}
+
+/**
+ * 저장된 코스 목록 조회 API 호출
+ */
+export async function getSavedCourses(): Promise<CourseResponse[]> {
+  const userId = getUserId();
+
+  const response = await fetch(`${API_BASE_URL}/courses/saved`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      "X-User-Id": userId,
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      errorData.message || `저장된 코스 조회 실패: ${response.statusText}`
+    );
+  }
+
+  const data = await response.json();
+  return data;
+}
