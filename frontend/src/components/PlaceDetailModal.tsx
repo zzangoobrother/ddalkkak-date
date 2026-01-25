@@ -57,7 +57,31 @@ export default function PlaceDetailModal({
                   <h2 className="text-2xl font-bold text-text-primary mb-2">
                     {place.name}
                   </h2>
-                  <p className="text-text-secondary">{place.category}</p>
+                  <p className="text-text-secondary mb-2">{place.category}</p>
+
+                  {/* 평점 & 리뷰 수 */}
+                  {place.rating !== undefined && place.rating !== null && (
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-yellow-500">⭐</span>
+                      <span className="text-text-primary font-semibold">
+                        {place.rating.toFixed(1)}
+                      </span>
+                      {place.reviewCount !== undefined && place.reviewCount !== null && (
+                        <span className="text-text-secondary text-sm">
+                          (리뷰 {place.reviewCount.toLocaleString()}개)
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 예약 필요 배지 */}
+                  {place.needsReservation && (
+                    <div className="inline-block">
+                      <span className="px-2 py-1 bg-red-500 text-white text-xs font-semibold rounded-md">
+                        예약 필수
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <button
                   type="button"
@@ -117,6 +141,21 @@ export default function PlaceDetailModal({
                       </div>
                       <div className="text-text-primary font-semibold">
                         {place.recommendedMenu}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 영업시간 */}
+                {place.openingHours && (
+                  <div className="flex items-start gap-3">
+                    <span className="text-xl flex-shrink-0">🕒</span>
+                    <div className="flex-1">
+                      <div className="text-sm text-text-secondary mb-1">
+                        영업시간
+                      </div>
+                      <div className="text-text-primary">
+                        {place.openingHours}
                       </div>
                     </div>
                   </div>
