@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import type { CourseResponse, PlaceInCourse } from "@/types/course";
 import { formatBudget, formatDuration } from "@/lib/utils";
+import { saveCourse } from "@/lib/api";
 import PlaceDetailModal from "./PlaceDetailModal";
 import Image from "next/image";
 
@@ -26,6 +27,8 @@ export default function CourseResult({
     null
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [savedCourseIds, setSavedCourseIds] = useState<Set<string>>(new Set());
 
   // 현재 표시할 코스
   const currentCourse = courses[currentIndex];
@@ -61,6 +64,29 @@ export default function CourseResult({
     setIsModalOpen(false);
     setTimeout(() => setSelectedPlace(null), 300);
   };
+
+  // 코스 저장 핸들러
+  const handleSaveCourse = async () => {
+    if (isSaving) return;
+
+    try {
+      setIsSaving(true);
+      await saveCourse(currentCourse.courseId);
+
+      // 저장된 코스 ID 추가
+      setSavedCourseIds((prev) => new Set(prev).add(currentCourse.courseId));
+
+      alert("💾 코스가 저장되었습니다!");
+    } catch (error) {
+      console.error("코스 저장 실패:", error);
+      alert("코스 저장에 실패했습니다. 다시 시도해주세요.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // 현재 코스가 저장되었는지 확인
+  const isCourseSaved = savedCourseIds.has(currentCourse.courseId);
 
   return (
     <div className="min-h-screen bg-background px-4 py-8">
@@ -286,10 +312,17 @@ export default function CourseResult({
           </button>
           <button
             type="button"
-            onClick={() => alert("저장 기능은 추후 구현 예정입니다.")}
-            className="py-3 rounded-xl font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
+            onClick={handleSaveCourse}
+            disabled={isSaving || isCourseSaved}
+            className={`py-3 rounded-xl font-semibold transition-colors ${
+              isCourseSaved
+                ? "text-white bg-green-600 cursor-not-allowed"
+                : isSaving
+                ? "text-gray-400 bg-gray-200 cursor-wait"
+                : "text-gray-700 bg-gray-100 hover:bg-gray-200"
+            }`}
           >
-            💾 저장
+            {isSaving ? "💾 저장 중..." : isCourseSaved ? "✅ 저장됨" : "💾 저장"}
           </button>
         </div>
 
