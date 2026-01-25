@@ -5,11 +5,11 @@
 import type { Region } from "@/types/region";
 import type { DateType, BudgetPreset } from "@/types/course";
 
-// 서울 12개 데이트 지역 데이터
+// 서울 12개 데이트 지역 데이터 (백엔드 ID와 일치하도록 수정)
 export const SEOUL_DATE_REGIONS: Region[] = [
   // Row 1: 북부
   {
-    id: "jongno",
+    id: "jongno-gwanghwamun",
     name: "종로·광화문",
     emoji: "🏛️",
     availableCourses: 8,
@@ -18,7 +18,7 @@ export const SEOUL_DATE_REGIONS: Region[] = [
     position: { row: 1, col: 1 },
   },
   {
-    id: "seongbuk",
+    id: "seongbuk-hyehwa",
     name: "성북·혜화",
     emoji: "🌳",
     availableCourses: 6,
@@ -27,7 +27,7 @@ export const SEOUL_DATE_REGIONS: Region[] = [
     position: { row: 1, col: 2 },
   },
   {
-    id: "junggu",
+    id: "junggu-myeongdong",
     name: "중구·명동",
     emoji: "🏢",
     availableCourses: 12,
@@ -38,7 +38,7 @@ export const SEOUL_DATE_REGIONS: Region[] = [
 
   // Row 2: 중부 (Hot 지역 포함)
   {
-    id: "mapo",
+    id: "mapo-hongdae",
     name: "마포·홍대",
     emoji: "🎨",
     availableCourses: 15,
@@ -47,7 +47,7 @@ export const SEOUL_DATE_REGIONS: Region[] = [
     position: { row: 2, col: 1 },
   },
   {
-    id: "yongsan",
+    id: "yongsan-itaewon",
     name: "용산·이태원",
     emoji: "🗼",
     availableCourses: 10,
@@ -56,7 +56,7 @@ export const SEOUL_DATE_REGIONS: Region[] = [
     position: { row: 2, col: 2 },
   },
   {
-    id: "gangnam",
+    id: "gangnam-yeoksam",
     name: "강남·역삼",
     emoji: "💼",
     availableCourses: 18,
@@ -67,7 +67,7 @@ export const SEOUL_DATE_REGIONS: Region[] = [
 
   // Row 3: 동부 (Hot 지역 포함)
   {
-    id: "seongdong",
+    id: "seongdong-seongsu",
     name: "성동·성수",
     emoji: "🏭",
     availableCourses: 12,
@@ -76,7 +76,7 @@ export const SEOUL_DATE_REGIONS: Region[] = [
     position: { row: 3, col: 1 },
   },
   {
-    id: "gwangjin",
+    id: "gwangjin-konkuk",
     name: "광진·건대",
     emoji: "🎓",
     availableCourses: 9,
@@ -85,7 +85,7 @@ export const SEOUL_DATE_REGIONS: Region[] = [
     position: { row: 3, col: 2 },
   },
   {
-    id: "songpa",
+    id: "songpa-jamsil",
     name: "송파·잠실",
     emoji: "🎢",
     availableCourses: 11,
@@ -96,7 +96,7 @@ export const SEOUL_DATE_REGIONS: Region[] = [
 
   // Row 4: 서남부
   {
-    id: "yeongdeungpo",
+    id: "yeongdeungpo-yeouido",
     name: "영등포·여의도",
     emoji: "🏙️",
     availableCourses: 7,
@@ -105,7 +105,7 @@ export const SEOUL_DATE_REGIONS: Region[] = [
     position: { row: 4, col: 1 },
   },
   {
-    id: "seocho",
+    id: "seocho-gyodae",
     name: "서초·교대",
     emoji: "🌸",
     availableCourses: 10,
@@ -114,7 +114,7 @@ export const SEOUL_DATE_REGIONS: Region[] = [
     position: { row: 4, col: 2 },
   },
   {
-    id: "gangdong",
+    id: "gangdong-cheonho",
     name: "강동·천호",
     emoji: "🌊",
     availableCourses: 5,

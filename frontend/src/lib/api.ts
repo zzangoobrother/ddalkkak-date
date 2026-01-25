@@ -5,7 +5,7 @@
 import type { CourseInputData, CourseResponse } from "@/types/course";
 
 // API 베이스 URL (환경변수로 관리 가능)
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
 
 /**
  * 코스 생성 API 호출
