@@ -88,4 +88,28 @@ public class PlaceInCourseDto {
     @Schema(description = "장소 이미지 URL 목록 (최대 3장)",
             example = "[\"https://example.com/image1.jpg\", \"https://example.com/image2.jpg\", \"https://example.com/image3.jpg\"]")
     private List<String> imageUrls;
+
+    /**
+     * 영업시간
+     */
+    @Schema(description = "영업시간", example = "매일 11:00 - 22:00")
+    private String openingHours;
+
+    /**
+     * 예약 필요 여부
+     */
+    @Schema(description = "예약 필요 여부", example = "false")
+    private Boolean needsReservation;
+
+    /**
+     * 평점 (0.0 ~ 5.0)
+     */
+    @Schema(description = "평점 (0.0 ~ 5.0)", example = "4.5")
+    private Double rating;
+
+    /**
+     * 리뷰 수
+     */
+    @Schema(description = "리뷰 수", example = "128")
+    private Integer reviewCount;
 }

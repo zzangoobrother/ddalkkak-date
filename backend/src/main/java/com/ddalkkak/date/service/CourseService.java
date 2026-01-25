@@ -405,6 +405,10 @@ public class CourseService {
                             .sequence(llmPlace.getSequence())
                             .transportToNext(llmPlace.getTransportToNext())
                             .imageUrls(generatePlaceImageUrls(place.getCategory()))
+                            .openingHours(null) // TODO: 추후 카카오 API 또는 수동 입력으로 확장
+                            .needsReservation(null) // TODO: 추후 확장
+                            .rating(place.getRating())
+                            .reviewCount(place.getReviewCount())
                             .build();
                 })
                 .collect(Collectors.toList());
@@ -460,6 +464,10 @@ public class CourseService {
                     .sequence(i + 1)
                     .transportToNext(i < numPlaces - 1 ? "도보 " + (5 + i * 5) + "분" : null)
                     .imageUrls(generatePlaceImageUrls(place.getCategory()))
+                    .openingHours(null) // TODO: 추후 확장
+                    .needsReservation(null) // TODO: 추후 확장
+                    .rating(place.getRating())
+                    .reviewCount(place.getReviewCount())
                     .build());
         }
 
@@ -550,6 +558,10 @@ public class CourseService {
                         .sequence(cp.getSequence())
                         .transportToNext(cp.getTransportToNext())
                         .imageUrls(generatePlaceImageUrls(cp.getPlace().getCategory()))
+                        .openingHours(null) // TODO: 추후 확장
+                        .needsReservation(null) // TODO: 추후 확장
+                        .rating(cp.getPlace().getRating())
+                        .reviewCount(cp.getPlace().getReviewCount())
                         .build())
                 .collect(Collectors.toList());
 
