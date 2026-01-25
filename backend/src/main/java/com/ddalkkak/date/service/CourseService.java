@@ -582,6 +582,111 @@ public class CourseService {
     }
 
     /**
+     * 코스 저장 (사용자에게 할당)
+     * 비로그인으로 생성된 코스를 사용자에게 저장
+     */
+    @Transactional
+    public void saveCourseForUser(String courseId, String userId) {
+        // Course 조회
+        Course course = courseRepository.findByCourseId(courseId)
+                .orElseThrow(() -> new IllegalArgumentException("코스를 찾을 수 없음: " + courseId));
+
+        // 이미 다른 사용자가 저장한 코스인지 확인
+        if (course.getUserId() != null && !course.getUserId().equals(userId)) {
+            // 다른 사용자의 코스면 새로운 코스로 복사
+            Course newCourse = Course.builder()
+                    .courseId("course-" + UUID.randomUUID().toString().substring(0, 8))
+                    .courseName(course.getCourseName())
+                    .regionId(course.getRegionId())
+                    .dateTypeId(course.getDateTypeId())
+                    .totalDurationMinutes(course.getTotalDurationMinutes())
+                    .totalBudget(course.getTotalBudget())
+                    .description(course.getDescription())
+                    .userId(userId)
+                    .build();
+
+            // CoursePlace 복사
+            for (CoursePlace cp : course.getCoursePlaces()) {
+                CoursePlace newCoursePlace = CoursePlace.builder()
+                        .place(cp.getPlace())
+                        .sequence(cp.getSequence())
+                        .durationMinutes(cp.getDurationMinutes())
+                        .estimatedCost(cp.getEstimatedCost())
+                        .recommendedMenu(cp.getRecommendedMenu())
+                        .transportToNext(cp.getTransportToNext())
+                        .build();
+                newCourse.addCoursePlace(newCoursePlace);
+            }
+
+            courseRepository.save(newCourse);
+            log.info("코스 복사 및 저장 완료 - 원본: {}, 복사본: {}, 사용자: {}",
+                    courseId, newCourse.getCourseId(), userId);
+            return;
+        }
+
+        // 같은 사용자이거나 비로그인 코스면 userId 업데이트
+        course.setUserId(userId);
+        courseRepository.save(course);
+        log.info("코스 저장 완료 - 코스 ID: {}, 사용자: {}", courseId, userId);
+    }
+
+    /**
+     * 사용자가 저장한 코스 목록 조회
+     */
+    @Transactional(readOnly = true)
+    public List<CourseResponse> getSavedCourses(String userId) {
+        List<Course> courses = courseRepository.findByUserIdOrderByCreatedAtDesc(userId);
+
+        return courses.stream()
+                .map(course -> {
+                    // Region 조회
+                    Region region = regionRepository.findById(course.getRegionId())
+                            .orElseThrow(() -> new IllegalArgumentException("지역을 찾을 수 없음: " + course.getRegionId()));
+
+                    // DateType 파싱
+                    DateType dateType = DateType.fromId(course.getDateTypeId());
+
+                    // CoursePlace -> PlaceInCourseDto 변환
+                    List<PlaceInCourseDto> places = course.getCoursePlaces().stream()
+                            .map(cp -> PlaceInCourseDto.builder()
+                                    .placeId(cp.getPlace().getId())
+                                    .name(cp.getPlace().getName())
+                                    .category(cp.getPlace().getCategory())
+                                    .address(cp.getPlace().getAddress())
+                                    .latitude(cp.getPlace().getLatitude())
+                                    .longitude(cp.getPlace().getLongitude())
+                                    .durationMinutes(cp.getDurationMinutes())
+                                    .estimatedCost(cp.getEstimatedCost())
+                                    .recommendedMenu(cp.getRecommendedMenu())
+                                    .sequence(cp.getSequence())
+                                    .transportToNext(cp.getTransportToNext())
+                                    .imageUrls(generatePlaceImageUrls(cp.getPlace().getCategory()))
+                                    .openingHours(null)
+                                    .needsReservation(null)
+                                    .rating(cp.getPlace().getRating())
+                                    .reviewCount(cp.getPlace().getReviewCount())
+                                    .build())
+                            .collect(Collectors.toList());
+
+                    // CourseResponse 생성
+                    return CourseResponse.builder()
+                            .courseId(course.getCourseId())
+                            .courseName(course.getCourseName())
+                            .regionId(course.getRegionId())
+                            .regionName(region.getName())
+                            .dateTypeId(course.getDateTypeId())
+                            .dateTypeName(dateType.getName())
+                            .totalDurationMinutes(course.getTotalDurationMinutes())
+                            .totalBudget(course.getTotalBudget())
+                            .description(course.getDescription())
+                            .places(places)
+                            .createdAt(course.getCreatedAt().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli())
+                            .build();
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
      * 장소 카테고리에 따른 기본 이미지 URL 생성 (최대 3장)
      * TODO: 추후 실제 카카오 Place API 또는 다른 이미지 소스로 교체
      */
