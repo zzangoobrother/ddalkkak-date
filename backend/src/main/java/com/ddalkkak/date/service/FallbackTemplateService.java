@@ -174,6 +174,10 @@ public class FallbackTemplateService {
                             .sequence(templatePlace.getSequence())
                             .transportToNext(templatePlace.getTransportToNext())
                             .imageUrls(generatePlaceImageUrls(place.getCategory()))
+                            .openingHours(null) // TODO: 추후 확장
+                            .needsReservation(null) // TODO: 추후 확장
+                            .rating(place.getRating())
+                            .reviewCount(place.getReviewCount())
                             .build();
                 })
                 .filter(p -> p != null)

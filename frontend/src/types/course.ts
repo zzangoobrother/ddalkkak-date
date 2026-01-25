@@ -74,6 +74,10 @@ export interface PlaceInCourse {
   sequence: number;
   transportToNext: string;
   imageUrls?: string[]; // 장소 이미지 URL 목록 (최대 3장)
+  openingHours?: string; // 영업시간
+  needsReservation?: boolean; // 예약 필요 여부
+  rating?: number; // 평점 (0.0 ~ 5.0)
+  reviewCount?: number; // 리뷰 수
 }
 
 // 코스 생성 응답
