@@ -73,6 +73,7 @@ export interface PlaceInCourse {
   recommendedMenu: string;
   sequence: number;
   transportToNext: string;
+  imageUrls?: string[]; // 장소 이미지 URL 목록 (최대 3장)
 }
 
 // 코스 생성 응답
