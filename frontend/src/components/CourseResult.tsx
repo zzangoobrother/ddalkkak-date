@@ -5,6 +5,7 @@ import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import type { CourseResponse, PlaceInCourse } from "@/types/course";
 import { formatBudget, formatDuration } from "@/lib/utils";
 import PlaceDetailModal from "./PlaceDetailModal";
+import Image from "next/image";
 
 interface CourseResultProps {
   courses: CourseResponse[];
@@ -207,6 +208,32 @@ export default function CourseResult({
                         </div>
                       </div>
                     </div>
+
+                    {/* 장소 이미지 썸네일 */}
+                    {place.imageUrls && place.imageUrls.length > 0 && (
+                      <div className="mb-4 overflow-x-auto">
+                        <div className="flex gap-2">
+                          {place.imageUrls.map((imageUrl, imageIndex) => (
+                            <div
+                              key={imageIndex}
+                              className="relative flex-shrink-0 w-24 h-24 rounded-lg overflow-hidden bg-gray-100"
+                            >
+                              <Image
+                                src={imageUrl}
+                                alt={`${place.name} 이미지 ${imageIndex + 1}`}
+                                fill
+                                sizes="96px"
+                                className="object-cover"
+                                onError={(e) => {
+                                  // 이미지 로드 실패 시 기본 이미지로 대체
+                                  e.currentTarget.src = "/placeholder-image.jpg";
+                                }}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     {/* 추천 메뉴 */}
                     {place.recommendedMenu && (

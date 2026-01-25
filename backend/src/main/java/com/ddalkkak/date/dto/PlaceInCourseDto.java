@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.util.List;
+
 /**
  * 코스 내 장소 정보 DTO
  */
@@ -79,4 +81,11 @@ public class PlaceInCourseDto {
      */
     @Schema(description = "다음 장소까지 이동 방법", example = "도보 10분")
     private String transportToNext;
+
+    /**
+     * 장소 이미지 URL 목록 (최대 3장)
+     */
+    @Schema(description = "장소 이미지 URL 목록 (최대 3장)",
+            example = "[\"https://example.com/image1.jpg\", \"https://example.com/image2.jpg\", \"https://example.com/image3.jpg\"]")
+    private List<String> imageUrls;
 }

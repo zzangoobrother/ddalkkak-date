@@ -15,6 +15,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -172,6 +173,7 @@ public class FallbackTemplateService {
                             .recommendedMenu(templatePlace.getRecommendedMenu())
                             .sequence(templatePlace.getSequence())
                             .transportToNext(templatePlace.getTransportToNext())
+                            .imageUrls(generatePlaceImageUrls(place.getCategory()))
                             .build();
                 })
                 .filter(p -> p != null)
@@ -193,6 +195,57 @@ public class FallbackTemplateService {
                 .places(places)
                 .createdAt(System.currentTimeMillis())
                 .build();
+    }
+
+    /**
+     * 장소 카테고리에 따른 기본 이미지 URL 생성 (최대 3장)
+     */
+    private List<String> generatePlaceImageUrls(String category) {
+        List<String> imageUrls = new ArrayList<>();
+
+        // 카테고리에 따른 Unsplash 이미지 (임시)
+        String query = extractImageQuery(category);
+
+        // 최대 3장의 이미지 URL 생성
+        for (int i = 1; i <= 3; i++) {
+            imageUrls.add(String.format("https://source.unsplash.com/800x600/?%s&sig=%d", query, i));
+        }
+
+        return imageUrls;
+    }
+
+    /**
+     * 카테고리에서 이미지 검색 쿼리 추출
+     */
+    private String extractImageQuery(String category) {
+        if (category == null) {
+            return "restaurant,cafe,seoul";
+        }
+
+        String lowerCategory = category.toLowerCase();
+
+        // 카테고리별 이미지 쿼리 매핑
+        if (lowerCategory.contains("카페") || lowerCategory.contains("커피")) {
+            return "cafe,coffee,dessert";
+        } else if (lowerCategory.contains("음식점") || lowerCategory.contains("레스토랑")) {
+            return "restaurant,food,dining";
+        } else if (lowerCategory.contains("한식")) {
+            return "korean,food,restaurant";
+        } else if (lowerCategory.contains("양식") || lowerCategory.contains("이탈리안")) {
+            return "italian,pasta,restaurant";
+        } else if (lowerCategory.contains("일식")) {
+            return "japanese,sushi,restaurant";
+        } else if (lowerCategory.contains("중식")) {
+            return "chinese,food,restaurant";
+        } else if (lowerCategory.contains("바") || lowerCategory.contains("펍")) {
+            return "bar,pub,drinks";
+        } else if (lowerCategory.contains("갤러리") || lowerCategory.contains("박물관")) {
+            return "gallery,museum,art";
+        } else if (lowerCategory.contains("공원") || lowerCategory.contains("야경")) {
+            return "park,night,view,seoul";
+        } else {
+            return "restaurant,cafe,seoul";
+        }
     }
 
     // ===== DTO 클래스 =====
