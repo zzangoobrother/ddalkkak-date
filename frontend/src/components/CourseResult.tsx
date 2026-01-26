@@ -5,6 +5,7 @@ import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import type { CourseResponse, PlaceInCourse } from "@/types/course";
 import { formatBudget, formatDuration } from "@/lib/utils";
 import { saveCourse } from "@/lib/api";
+import { shareCourseToChatKakao } from "@/lib/kakao";
 import PlaceDetailModal from "./PlaceDetailModal";
 import Image from "next/image";
 
@@ -87,6 +88,17 @@ export default function CourseResult({
 
   // 현재 코스가 저장되었는지 확인
   const isCourseSaved = savedCourseIds.has(currentCourse.courseId);
+
+  // 카카오톡 공유 핸들러
+  const handleShareToKakao = async () => {
+    const result = await shareCourseToChatKakao(currentCourse);
+
+    if (!result.success) {
+      alert(
+        `카카오톡 공유에 실패했습니다.\n${result.error || "다시 시도해주세요."}`
+      );
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background px-4 py-8">
@@ -330,9 +342,7 @@ export default function CourseResult({
           <button
             type="button"
             className="w-full py-4 rounded-xl font-semibold bg-primary text-white hover:bg-primary/90 transition-colors"
-            onClick={() => {
-              alert("카카오톡 공유 기능은 추후 구현 예정입니다.");
-            }}
+            onClick={handleShareToKakao}
           >
             📤 카카오톡으로 공유하기
           </button>
