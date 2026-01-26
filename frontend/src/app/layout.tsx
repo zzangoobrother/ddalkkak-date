@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import KakaoScript from "@/components/KakaoScript";
 import "../styles/globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -16,7 +17,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body className={inter.className}>{children}</body>
+      <body className={inter.className}>
+        {children}
+        {/* 카카오 SDK 로드 */}
+        <KakaoScript />
+      </body>
     </html>
   );
 }
