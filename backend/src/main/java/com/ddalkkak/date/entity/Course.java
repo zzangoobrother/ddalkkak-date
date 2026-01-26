@@ -84,6 +84,19 @@ public class Course {
     private String userId;
 
     /**
+     * 코스 상태 (DRAFT, SAVED, CONFIRMED)
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", length = 20)
+    private CourseStatus status;
+
+    /**
+     * 확정 일시
+     */
+    @Column(name = "confirmed_at")
+    private LocalDateTime confirmedAt;
+
+    /**
      * 생성일시
      */
     @CreationTimestamp
@@ -111,5 +124,19 @@ public class Course {
      */
     public void setUserId(String userId) {
         this.userId = userId;
+    }
+
+    /**
+     * status 설정 (코스 상태 변경 시 사용)
+     */
+    public void setStatus(CourseStatus status) {
+        this.status = status;
+    }
+
+    /**
+     * confirmedAt 설정 (코스 확정 시 사용)
+     */
+    public void setConfirmedAt(LocalDateTime confirmedAt) {
+        this.confirmedAt = confirmedAt;
     }
 }

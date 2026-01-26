@@ -4,10 +4,12 @@ import { useState } from "react";
 import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import type { CourseResponse, PlaceInCourse } from "@/types/course";
 import { formatBudget, formatDuration } from "@/lib/utils";
-import { saveCourse } from "@/lib/api";
+import { saveCourse, confirmCourse } from "@/lib/api";
 import { shareCourseToChatKakao } from "@/lib/kakao";
 import PlaceDetailModal from "./PlaceDetailModal";
 import CourseCustomize from "./CourseCustomize";
+import ConfirmCourseModal from "./ConfirmCourseModal";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 
 interface CourseResultProps {
@@ -33,6 +35,10 @@ export default function CourseResult({
   const [savedCourseIds, setSavedCourseIds] = useState<Set<string>>(new Set());
   const [isCustomizing, setIsCustomizing] = useState(false);
   const [coursesState, setCoursesState] = useState<CourseResponse[]>(courses);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
+  const [confirmedCourseIds, setConfirmedCourseIds] = useState<Set<string>>(new Set());
+  const router = useRouter();
 
   // 현재 표시할 코스
   const currentCourse = coursesState[currentIndex];
@@ -121,6 +127,47 @@ export default function CourseResult({
   const handleCustomizeCancel = () => {
     setIsCustomizing(false);
   };
+
+  // 확정 버튼 클릭 (모달 열기)
+  const handleConfirmClick = () => {
+    setIsConfirmModalOpen(true);
+  };
+
+  // 확정 모달에서 "확정하기" 클릭
+  const handleConfirmCourse = async () => {
+    try {
+      setIsConfirming(true);
+      await confirmCourse(currentCourse.courseId);
+
+      // 확정된 코스 ID 추가
+      setConfirmedCourseIds((prev) => new Set(prev).add(currentCourse.courseId));
+
+      // 모달 닫기
+      setIsConfirmModalOpen(false);
+
+      // Toast 알림 (간단한 alert로 대체)
+      alert("✅ 코스가 확정되었습니다!");
+
+      // 2초 후 홈으로 리다이렉트
+      setTimeout(() => {
+        router.push("/");
+      }, 2000);
+    } catch (error) {
+      console.error("코스 확정 실패:", error);
+      alert("코스 확정에 실패했습니다. 다시 시도해주세요.");
+      setIsConfirmModalOpen(false);
+    } finally {
+      setIsConfirming(false);
+    }
+  };
+
+  // 확정 모달 취소
+  const handleCancelConfirm = () => {
+    setIsConfirmModalOpen(false);
+  };
+
+  // 현재 코스가 확정되었는지 확인
+  const isCourseConfirmed = confirmedCourseIds.has(currentCourse.courseId);
 
   // 커스터마이징 모드일 때는 다른 UI 표시
   if (isCustomizing) {
@@ -381,12 +428,15 @@ export default function CourseResult({
           </button>
           <button
             type="button"
-            onClick={() => {
-              alert("선택 기능은 추후 구현 예정입니다.");
-            }}
-            className="w-full py-4 rounded-xl font-semibold bg-green-600 text-white hover:bg-green-700 transition-colors"
+            onClick={handleConfirmClick}
+            disabled={isCourseConfirmed}
+            className={`w-full py-4 rounded-xl font-semibold transition-colors ${
+              isCourseConfirmed
+                ? "bg-green-600 text-white cursor-not-allowed"
+                : "bg-green-600 text-white hover:bg-green-700"
+            }`}
           >
-            ✅ 이 코스로 선택
+            {isCourseConfirmed ? "✅ 확정됨" : "✅ 이 코스로 선택"}
           </button>
           <button
             type="button"
@@ -403,6 +453,15 @@ export default function CourseResult({
         place={selectedPlace}
         isOpen={isModalOpen}
         onClose={closeModal}
+      />
+
+      {/* 코스 확정 모달 */}
+      <ConfirmCourseModal
+        isOpen={isConfirmModalOpen}
+        isConfirming={isConfirming}
+        courseName={currentCourse.courseName}
+        onConfirm={handleConfirmCourse}
+        onCancel={handleCancelConfirm}
       />
     </div>
   );

@@ -81,4 +81,16 @@ public class CourseResponse {
      */
     @Schema(description = "생성 시각", example = "1642345678000")
     private Long createdAt;
+
+    /**
+     * 코스 상태 (DRAFT, SAVED, CONFIRMED)
+     */
+    @Schema(description = "코스 상태", example = "CONFIRMED")
+    private String status;
+
+    /**
+     * 확정 시각 (timestamp, null 가능)
+     */
+    @Schema(description = "확정 시각", example = "1642345678000")
+    private Long confirmedAt;
 }
