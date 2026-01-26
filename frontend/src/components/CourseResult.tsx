@@ -7,6 +7,7 @@ import { formatBudget, formatDuration } from "@/lib/utils";
 import { saveCourse } from "@/lib/api";
 import { shareCourseToChatKakao } from "@/lib/kakao";
 import PlaceDetailModal from "./PlaceDetailModal";
+import CourseCustomize from "./CourseCustomize";
 import Image from "next/image";
 
 interface CourseResultProps {
@@ -30,9 +31,11 @@ export default function CourseResult({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [savedCourseIds, setSavedCourseIds] = useState<Set<string>>(new Set());
+  const [isCustomizing, setIsCustomizing] = useState(false);
+  const [coursesState, setCoursesState] = useState<CourseResponse[]>(courses);
 
   // 현재 표시할 코스
-  const currentCourse = courses[currentIndex];
+  const currentCourse = coursesState[currentIndex];
 
   // 스와이프 감지 임계값 (픽셀)
   const swipeThreshold = 50;
@@ -49,7 +52,7 @@ export default function CourseResult({
       setCurrentIndex(currentIndex - 1);
     }
     // 왼쪽 스와이프 (다음 코스)
-    else if (offset.x < -swipeThreshold && currentIndex < courses.length - 1) {
+    else if (offset.x < -swipeThreshold && currentIndex < coursesState.length - 1) {
       setCurrentIndex(currentIndex + 1);
     }
   };
@@ -100,6 +103,36 @@ export default function CourseResult({
     }
   };
 
+  // 커스터마이징 시작 핸들러
+  const handleCustomize = () => {
+    setIsCustomizing(true);
+  };
+
+  // 커스터마이징 저장 핸들러
+  const handleCustomizeSave = (updatedCourse: CourseResponse) => {
+    const newCourses = [...coursesState];
+    newCourses[currentIndex] = updatedCourse;
+    setCoursesState(newCourses);
+    setIsCustomizing(false);
+    alert("✅ 코스가 수정되었습니다!");
+  };
+
+  // 커스터마이징 취소 핸들러
+  const handleCustomizeCancel = () => {
+    setIsCustomizing(false);
+  };
+
+  // 커스터마이징 모드일 때는 다른 UI 표시
+  if (isCustomizing) {
+    return (
+      <CourseCustomize
+        course={currentCourse}
+        onSave={handleCustomizeSave}
+        onCancel={handleCustomizeCancel}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background px-4 py-8">
       <div className="w-full max-w-2xl mx-auto">
@@ -114,7 +147,7 @@ export default function CourseResult({
 
         {/* 페이지 인디케이터 */}
         <div className="flex justify-center items-center gap-2 mb-6">
-          {courses.map((_, index) => (
+          {coursesState.map((_, index) => (
             <button
               key={index}
               type="button"
@@ -130,7 +163,7 @@ export default function CourseResult({
         </div>
 
         {/* 스와이프 안내 */}
-        {courses.length > 1 && (
+        {coursesState.length > 1 && (
           <div className="text-center text-sm text-text-secondary mb-4">
             ← 좌우로 스와이프하여 다른 코스 보기 →
           </div>
@@ -317,7 +350,7 @@ export default function CourseResult({
         <div className="grid grid-cols-2 gap-3 mb-4">
           <button
             type="button"
-            onClick={() => alert("수정 기능은 추후 구현 예정입니다.")}
+            onClick={handleCustomize}
             className="py-3 rounded-xl font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
           >
             ✏️ 수정하기
