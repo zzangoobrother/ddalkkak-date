@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -501,6 +502,7 @@ public class CourseService {
                 .totalBudget(courseResponse.getTotalBudget())
                 .description(courseResponse.getDescription())
                 .userId(null) // 현재는 비로그인 사용자 (나중에 userId 추가)
+                .status(com.ddalkkak.date.entity.CourseStatus.DRAFT) // 초기 상태는 DRAFT
                 .build();
 
         // CoursePlace 엔티티 생성 및 추가
@@ -603,6 +605,7 @@ public class CourseService {
                     .totalBudget(course.getTotalBudget())
                     .description(course.getDescription())
                     .userId(userId)
+                    .status(com.ddalkkak.date.entity.CourseStatus.SAVED) // 저장 상태로 설정
                     .build();
 
             // CoursePlace 복사
@@ -626,8 +629,65 @@ public class CourseService {
 
         // 같은 사용자이거나 비로그인 코스면 userId 업데이트
         course.setUserId(userId);
+        course.setStatus(com.ddalkkak.date.entity.CourseStatus.SAVED); // 저장 상태로 변경
         courseRepository.save(course);
         log.info("코스 저장 완료 - 코스 ID: {}, 사용자: {}", courseId, userId);
+    }
+
+    /**
+     * 코스 확정
+     * 비로그인으로 생성된 코스를 확정하거나, 저장된 코스를 확정
+     */
+    @Transactional
+    public void confirmCourse(String courseId, String userId) {
+        // Course 조회
+        Course course = courseRepository.findByCourseId(courseId)
+                .orElseThrow(() -> new IllegalArgumentException("코스를 찾을 수 없음: " + courseId));
+
+        // 1. userId가 없으면 저장 (DRAFT → SAVED)
+        if (course.getUserId() == null) {
+            course.setUserId(userId);
+            course.setStatus(com.ddalkkak.date.entity.CourseStatus.SAVED);
+        }
+        // 2. 다른 사용자의 코스면 복사 후 확정
+        else if (!course.getUserId().equals(userId)) {
+            Course newCourse = Course.builder()
+                    .courseId("course-" + UUID.randomUUID().toString().substring(0, 8))
+                    .courseName(course.getCourseName())
+                    .regionId(course.getRegionId())
+                    .dateTypeId(course.getDateTypeId())
+                    .totalDurationMinutes(course.getTotalDurationMinutes())
+                    .totalBudget(course.getTotalBudget())
+                    .description(course.getDescription())
+                    .userId(userId)
+                    .status(com.ddalkkak.date.entity.CourseStatus.CONFIRMED)
+                    .confirmedAt(LocalDateTime.now())
+                    .build();
+
+            // CoursePlace 복사
+            for (CoursePlace cp : course.getCoursePlaces()) {
+                CoursePlace newCoursePlace = CoursePlace.builder()
+                        .place(cp.getPlace())
+                        .sequence(cp.getSequence())
+                        .durationMinutes(cp.getDurationMinutes())
+                        .estimatedCost(cp.getEstimatedCost())
+                        .recommendedMenu(cp.getRecommendedMenu())
+                        .transportToNext(cp.getTransportToNext())
+                        .build();
+                newCourse.addCoursePlace(newCoursePlace);
+            }
+
+            courseRepository.save(newCourse);
+            log.info("코스 복사 및 확정 완료 - 원본: {}, 복사본: {}, 사용자: {}",
+                    courseId, newCourse.getCourseId(), userId);
+            return;
+        }
+
+        // 3. 확정 상태로 변경
+        course.setStatus(com.ddalkkak.date.entity.CourseStatus.CONFIRMED);
+        course.setConfirmedAt(LocalDateTime.now());
+        courseRepository.save(course);
+        log.info("코스 확정 완료 - 코스 ID: {}, 사용자: {}", courseId, userId);
     }
 
     /**
@@ -636,6 +696,68 @@ public class CourseService {
     @Transactional(readOnly = true)
     public List<CourseResponse> getSavedCourses(String userId) {
         List<Course> courses = courseRepository.findByUserIdOrderByCreatedAtDesc(userId);
+
+        return courses.stream()
+                .map(course -> {
+                    // Region 조회
+                    Region region = regionRepository.findById(course.getRegionId())
+                            .orElseThrow(() -> new IllegalArgumentException("지역을 찾을 수 없음: " + course.getRegionId()));
+
+                    // DateType 파싱
+                    DateType dateType = DateType.fromId(course.getDateTypeId());
+
+                    // CoursePlace -> PlaceInCourseDto 변환
+                    List<PlaceInCourseDto> places = course.getCoursePlaces().stream()
+                            .map(cp -> PlaceInCourseDto.builder()
+                                    .placeId(cp.getPlace().getId())
+                                    .name(cp.getPlace().getName())
+                                    .category(cp.getPlace().getCategory())
+                                    .address(cp.getPlace().getAddress())
+                                    .latitude(cp.getPlace().getLatitude())
+                                    .longitude(cp.getPlace().getLongitude())
+                                    .durationMinutes(cp.getDurationMinutes())
+                                    .estimatedCost(cp.getEstimatedCost())
+                                    .recommendedMenu(cp.getRecommendedMenu())
+                                    .sequence(cp.getSequence())
+                                    .transportToNext(cp.getTransportToNext())
+                                    .imageUrls(generatePlaceImageUrls(cp.getPlace().getCategory()))
+                                    .openingHours(null)
+                                    .needsReservation(null)
+                                    .rating(cp.getPlace().getRating())
+                                    .reviewCount(cp.getPlace().getReviewCount())
+                                    .build())
+                            .collect(Collectors.toList());
+
+                    // CourseResponse 생성
+                    return CourseResponse.builder()
+                            .courseId(course.getCourseId())
+                            .courseName(course.getCourseName())
+                            .regionId(course.getRegionId())
+                            .regionName(region.getName())
+                            .dateTypeId(course.getDateTypeId())
+                            .dateTypeName(dateType.getName())
+                            .totalDurationMinutes(course.getTotalDurationMinutes())
+                            .totalBudget(course.getTotalBudget())
+                            .description(course.getDescription())
+                            .places(places)
+                            .createdAt(course.getCreatedAt().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli())
+                            .build();
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 사용자가 저장한 코스 목록 조회 (상태 필터링)
+     */
+    @Transactional(readOnly = true)
+    public List<CourseResponse> getSavedCourses(String userId, com.ddalkkak.date.entity.CourseStatus status) {
+        List<Course> courses;
+
+        if (status != null) {
+            courses = courseRepository.findByUserIdAndStatusOrderByCreatedAtDesc(userId, status);
+        } else {
+            courses = courseRepository.findByUserIdOrderByCreatedAtDesc(userId);
+        }
 
         return courses.stream()
                 .map(course -> {

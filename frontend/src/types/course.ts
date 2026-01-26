@@ -93,4 +93,6 @@ export interface CourseResponse {
   description: string;
   places: PlaceInCourse[];
   createdAt: number;
+  status?: string; // "DRAFT" | "SAVED" | "CONFIRMED"
+  confirmedAt?: number; // timestamp
 }

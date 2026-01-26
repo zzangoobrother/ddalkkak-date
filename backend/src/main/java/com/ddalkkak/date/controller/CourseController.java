@@ -93,7 +93,8 @@ public class CourseController {
     @Operation(summary = "저장된 코스 조회", description = "사용자가 저장한 코스 목록을 조회합니다")
     @GetMapping("/saved")
     public ResponseEntity<List<CourseResponse>> getSavedCourses(
-            @RequestHeader(value = "X-User-Id", required = false) String userId) {
+            @RequestHeader(value = "X-User-Id", required = false) String userId,
+            @RequestParam(value = "status", required = false) String statusParam) {
 
         // 임시: userId가 없으면 빈 리스트 반환
         if (userId == null || userId.isBlank()) {
@@ -101,12 +102,48 @@ public class CourseController {
             return ResponseEntity.ok(List.of());
         }
 
-        log.info("저장된 코스 조회 요청 - 사용자 ID: {}", userId);
+        log.info("저장된 코스 조회 요청 - 사용자 ID: {}, 상태 필터: {}", userId, statusParam);
 
-        List<CourseResponse> courses = courseService.getSavedCourses(userId);
+        // status 파라미터를 CourseStatus로 변환
+        com.ddalkkak.date.entity.CourseStatus status = null;
+        if (statusParam != null && !statusParam.isBlank()) {
+            try {
+                status = com.ddalkkak.date.entity.CourseStatus.valueOf(statusParam.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                log.warn("잘못된 status 값: {}", statusParam);
+                return ResponseEntity.badRequest().build();
+            }
+        }
+
+        List<CourseResponse> courses = courseService.getSavedCourses(userId, status);
 
         log.info("저장된 코스 조회 완료 - 사용자 ID: {}, 코스 수: {}", userId, courses.size());
 
         return ResponseEntity.ok(courses);
+    }
+
+    /**
+     * 코스 확정
+     * 임시: 헤더로 userId를 받음 (SCRUM-10에서 인증 구현 예정)
+     */
+    @Operation(summary = "코스 확정", description = "생성된 코스를 최종 확정합니다")
+    @PostMapping("/{courseId}/confirm")
+    public ResponseEntity<Void> confirmCourse(
+            @PathVariable String courseId,
+            @RequestHeader(value = "X-User-Id", required = false) String userId) {
+
+        // 임시: userId가 없으면 에러 반환
+        if (userId == null || userId.isBlank()) {
+            log.warn("코스 확정 실패 - userId 없음");
+            return ResponseEntity.badRequest().build();
+        }
+
+        log.info("코스 확정 요청 - 코스 ID: {}, 사용자 ID: {}", courseId, userId);
+
+        courseService.confirmCourse(courseId, userId);
+
+        log.info("코스 확정 완료 - 코스 ID: {}, 사용자 ID: {}", courseId, userId);
+
+        return ResponseEntity.ok().build();
     }
 }

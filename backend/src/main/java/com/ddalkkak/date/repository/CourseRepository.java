@@ -1,6 +1,7 @@
 package com.ddalkkak.date.repository;
 
 import com.ddalkkak.date.entity.Course;
+import com.ddalkkak.date.entity.CourseStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -27,4 +28,9 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
      * courseId와 userId로 코스 조회 (저장 여부 확인용)
      */
     Optional<Course> findByCourseIdAndUserId(String courseId, String userId);
+
+    /**
+     * 사용자가 저장한 코스 중 특정 상태의 코스만 조회
+     */
+    List<Course> findByUserIdAndStatusOrderByCreatedAtDesc(String userId, CourseStatus status);
 }

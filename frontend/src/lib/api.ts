@@ -101,16 +101,22 @@ export async function saveCourse(courseId: string): Promise<void> {
 /**
  * 저장된 코스 목록 조회 API 호출
  */
-export async function getSavedCourses(): Promise<CourseResponse[]> {
+export async function getSavedCourses(
+  status?: "CONFIRMED" | "SAVED"
+): Promise<CourseResponse[]> {
   const userId = getUserId();
+  const queryParam = status ? `?status=${status}` : "";
 
-  const response = await fetch(`${API_BASE_URL}/courses/saved`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      "X-User-Id": userId,
-    },
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/courses/saved${queryParam}`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "X-User-Id": userId,
+      },
+    }
+  );
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -121,4 +127,24 @@ export async function getSavedCourses(): Promise<CourseResponse[]> {
 
   const data = await response.json();
   return data;
+}
+
+/**
+ * 코스 확정
+ */
+export async function confirmCourse(courseId: string): Promise<void> {
+  const userId = getUserId();
+
+  const response = await fetch(`${API_BASE_URL}/courses/${courseId}/confirm`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-User-Id": userId,
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || `코스 확정 실패: ${response.statusText}`);
+  }
 }
