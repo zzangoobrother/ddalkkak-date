@@ -78,6 +78,8 @@ export interface PlaceInCourse {
   needsReservation?: boolean; // 예약 필요 여부
   rating?: number; // 평점 (0.0 ~ 5.0)
   reviewCount?: number; // 리뷰 수
+  memo?: string; // 사용자 메모 (최대 100자)
+  description?: string; // 장소 설명
 }
 
 // 코스 생성 응답
