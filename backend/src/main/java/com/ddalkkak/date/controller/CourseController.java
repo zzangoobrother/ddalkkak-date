@@ -2,6 +2,7 @@ package com.ddalkkak.date.controller;
 
 import com.ddalkkak.date.dto.CourseGenerationRequest;
 import com.ddalkkak.date.dto.CourseResponse;
+import com.ddalkkak.date.dto.CourseUpdateRequest;
 import com.ddalkkak.date.service.CourseService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -145,5 +146,24 @@ public class CourseController {
         log.info("코스 확정 완료 - 코스 ID: {}, 사용자 ID: {}", courseId, userId);
 
         return ResponseEntity.ok().build();
+    }
+
+    /**
+     * 코스 수정 (SCRUM-26)
+     * 장소 순서 변경, 교체, 추가, 삭제 지원
+     */
+    @Operation(summary = "코스 수정", description = "코스의 장소 순서를 변경하거나 장소를 교체/추가/삭제합니다 (최소 2개, 최대 5개)")
+    @PutMapping("/{courseId}")
+    public ResponseEntity<CourseResponse> updateCourse(
+            @PathVariable String courseId,
+            @Valid @RequestBody CourseUpdateRequest request) {
+
+        log.info("코스 수정 요청 - 코스 ID: {}, 장소 수: {}", courseId, request.getPlaces().size());
+
+        CourseResponse response = courseService.updateCourse(courseId, request);
+
+        log.info("코스 수정 완료 - 코스 ID: {}, 장소 수: {}", courseId, response.getPlaces().size());
+
+        return ResponseEntity.ok(response);
     }
 }
