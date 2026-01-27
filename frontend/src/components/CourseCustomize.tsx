@@ -31,12 +31,23 @@ interface CourseCustomizeProps {
 interface SortablePlaceItemProps {
   place: PlaceInCourse;
   onDelete: (placeId: number) => void;
+  onMoveUp: (placeId: number) => void;
+  onMoveDown: (placeId: number) => void;
+  isFirst: boolean;
+  isLast: boolean;
 }
 
 /**
  * 드래그 가능한 장소 카드 컴포넌트
  */
-function SortablePlaceItem({ place, onDelete }: SortablePlaceItemProps) {
+function SortablePlaceItem({
+  place,
+  onDelete,
+  onMoveUp,
+  onMoveDown,
+  isFirst,
+  isLast,
+}: SortablePlaceItemProps) {
   const {
     attributes,
     listeners,
@@ -62,12 +73,12 @@ function SortablePlaceItem({ place, onDelete }: SortablePlaceItemProps) {
     >
       {/* 드래그 핸들 및 장소 정보 */}
       <div className="flex items-start gap-4">
-        {/* 드래그 핸들 */}
+        {/* 드래그 핸들 (태블릿/데스크톱만 표시) */}
         <button
           type="button"
           {...attributes}
           {...listeners}
-          className="flex-shrink-0 w-10 h-10 bg-gray-200 hover:bg-gray-300 rounded-lg flex items-center justify-center cursor-grab active:cursor-grabbing touch-none"
+          className="hidden md:flex flex-shrink-0 w-10 h-10 bg-gray-200 hover:bg-gray-300 rounded-lg items-center justify-center cursor-grab active:cursor-grabbing touch-none"
           aria-label="장소 순서 이동"
         >
           <svg
@@ -84,6 +95,52 @@ function SortablePlaceItem({ place, onDelete }: SortablePlaceItemProps) {
             />
           </svg>
         </button>
+
+        {/* 화살표 버튼 (모바일만 표시) */}
+        <div className="flex md:hidden flex-col gap-1 flex-shrink-0">
+          <button
+            type="button"
+            onClick={() => onMoveUp(place.placeId)}
+            disabled={isFirst}
+            className="w-8 h-8 bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 disabled:opacity-50 rounded-lg flex items-center justify-center transition-colors"
+            aria-label="위로 이동"
+          >
+            <svg
+              className="w-4 h-4 text-gray-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 15l7-7 7 7"
+              />
+            </svg>
+          </button>
+          <button
+            type="button"
+            onClick={() => onMoveDown(place.placeId)}
+            disabled={isLast}
+            className="w-8 h-8 bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 disabled:opacity-50 rounded-lg flex items-center justify-center transition-colors"
+            aria-label="아래로 이동"
+          >
+            <svg
+              className="w-4 h-4 text-gray-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          </button>
+        </div>
 
         {/* 장소 번호 */}
         <div className="flex-shrink-0 w-10 h-10 bg-primary text-white rounded-full flex items-center justify-center font-bold">
@@ -190,6 +247,64 @@ export default function CourseCustomize({
     })
   );
 
+  // Haversine 공식으로 두 지점 간 거리 계산 (km)
+  const calculateDistance = (
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number
+  ): number => {
+    const R = 6371; // 지구 반지름 (km)
+    const toRadians = (degrees: number): number => degrees * (Math.PI / 180);
+
+    const dLat = toRadians(lat2 - lat1);
+    const dLon = toRadians(lon2 - lon1);
+
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRadians(lat1)) *
+        Math.cos(toRadians(lat2)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
+
+  // transportToNext 재계산 함수
+  const recalculateTransportInfo = (
+    places: PlaceInCourse[]
+  ): PlaceInCourse[] => {
+    return places.map((place, index) => {
+      // 마지막 장소는 transportToNext를 빈 문자열로
+      if (index === places.length - 1) {
+        return { ...place, transportToNext: "" };
+      }
+
+      const nextPlace = places[index + 1];
+      const distance = calculateDistance(
+        place.latitude,
+        place.longitude,
+        nextPlace.latitude,
+        nextPlace.longitude
+      );
+
+      // 거리에 따른 이동 수단 및 시간 추정
+      let transport: string;
+      if (distance < 0.5) {
+        transport = `도보 ${Math.ceil(distance * 20)}분`;
+      } else if (distance < 2) {
+        transport = `도보 ${Math.ceil(distance * 15)}분`;
+      } else if (distance < 5) {
+        transport = `대중교통 ${Math.ceil(distance * 5)}분`;
+      } else {
+        transport = `대중교통 ${Math.ceil(distance * 4)}분`;
+      }
+
+      return { ...place, transportToNext: transport };
+    });
+  };
+
   // 드래그 종료 핸들러
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -201,13 +316,59 @@ export default function CourseCustomize({
 
         const newItems = arrayMove(items, oldIndex, newIndex);
 
-        // sequence 업데이트
-        return newItems.map((item, index) => ({
-          ...item,
-          sequence: index + 1,
-        }));
+        // sequence 업데이트 및 transportToNext 재계산
+        return recalculateTransportInfo(
+          newItems.map((item, index) => ({
+            ...item,
+            sequence: index + 1,
+          }))
+        );
       });
     }
+  };
+
+  // 위로 이동 핸들러
+  const handleMoveUp = (placeId: number) => {
+    setPlaces((items) => {
+      const index = items.findIndex((item) => item.placeId === placeId);
+
+      if (index <= 0) return items;
+
+      const newItems = [...items];
+      [newItems[index - 1], newItems[index]] = [
+        newItems[index],
+        newItems[index - 1],
+      ];
+
+      return recalculateTransportInfo(
+        newItems.map((item, idx) => ({
+          ...item,
+          sequence: idx + 1,
+        }))
+      );
+    });
+  };
+
+  // 아래로 이동 핸들러
+  const handleMoveDown = (placeId: number) => {
+    setPlaces((items) => {
+      const index = items.findIndex((item) => item.placeId === placeId);
+
+      if (index < 0 || index >= items.length - 1) return items;
+
+      const newItems = [...items];
+      [newItems[index], newItems[index + 1]] = [
+        newItems[index + 1],
+        newItems[index],
+      ];
+
+      return recalculateTransportInfo(
+        newItems.map((item, idx) => ({
+          ...item,
+          sequence: idx + 1,
+        }))
+      );
+    });
   };
 
   // 장소 삭제 핸들러
@@ -218,12 +379,14 @@ export default function CourseCustomize({
     }
 
     if (confirm("이 장소를 삭제하시겠습니까?")) {
-      const newPlaces = places
-        .filter((p) => p.placeId !== placeId)
-        .map((item, index) => ({
-          ...item,
-          sequence: index + 1,
-        }));
+      const newPlaces = recalculateTransportInfo(
+        places
+          .filter((p) => p.placeId !== placeId)
+          .map((item, index) => ({
+            ...item,
+            sequence: index + 1,
+          }))
+      );
       setPlaces(newPlaces);
     }
   };
@@ -276,7 +439,13 @@ export default function CourseCustomize({
             코스 수정하기
           </h1>
           <p className="text-text-secondary">
-            장소를 드래그하여 순서를 변경하거나, 삭제할 수 있습니다.
+            <span className="hidden md:inline">
+              장소를 드래그하여 순서를 변경하거나
+            </span>
+            <span className="md:hidden">
+              화살표 버튼으로 순서를 변경하거나
+            </span>
+            , 삭제할 수 있습니다.
           </p>
         </div>
 
@@ -313,11 +482,15 @@ export default function CourseCustomize({
             items={places.map((p) => p.placeId)}
             strategy={verticalListSortingStrategy}
           >
-            {places.map((place) => (
+            {places.map((place, index) => (
               <SortablePlaceItem
                 key={place.placeId}
                 place={place}
                 onDelete={handleDeletePlace}
+                onMoveUp={handleMoveUp}
+                onMoveDown={handleMoveDown}
+                isFirst={index === 0}
+                isLast={index === places.length - 1}
               />
             ))}
           </SortableContext>
