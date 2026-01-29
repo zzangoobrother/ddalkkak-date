@@ -3,9 +3,19 @@
  */
 
 import type { CourseInputData, CourseResponse } from "@/types/course";
+import { useAuthStore } from "@/store/authStore";
 
 // API 베이스 URL (환경변수로 관리 가능)
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+
+/**
+ * 현재 Access Token 가져오기
+ */
+function getAccessToken(): string | null {
+  // Zustand store에서 직접 조회 (hook 밖에서 사용)
+  const state = useAuthStore.getState();
+  return state.tokens?.accessToken || null;
+}
 
 /**
  * 코스 생성 API 호출
@@ -82,13 +92,17 @@ function getUserId(): string {
  * 코스 저장 API 호출
  */
 export async function saveCourse(courseId: string): Promise<void> {
-  const userId = getUserId();
+  const accessToken = getAccessToken();
+
+  if (!accessToken) {
+    throw new Error("로그인이 필요합니다.");
+  }
 
   const response = await fetch(`${API_BASE_URL}/courses/${courseId}/save`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-User-Id": userId,
+      "Authorization": `Bearer ${accessToken}`,
     },
   });
 
@@ -104,7 +118,12 @@ export async function saveCourse(courseId: string): Promise<void> {
 export async function getSavedCourses(
   status?: "CONFIRMED" | "SAVED"
 ): Promise<CourseResponse[]> {
-  const userId = getUserId();
+  const accessToken = getAccessToken();
+
+  if (!accessToken) {
+    throw new Error("로그인이 필요합니다.");
+  }
+
   const queryParam = status ? `?status=${status}` : "";
 
   const response = await fetch(
@@ -113,7 +132,7 @@ export async function getSavedCourses(
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-        "X-User-Id": userId,
+        "Authorization": `Bearer ${accessToken}`,
       },
     }
   );
@@ -133,13 +152,17 @@ export async function getSavedCourses(
  * 코스 확정
  */
 export async function confirmCourse(courseId: string): Promise<void> {
-  const userId = getUserId();
+  const accessToken = getAccessToken();
+
+  if (!accessToken) {
+    throw new Error("로그인이 필요합니다.");
+  }
 
   const response = await fetch(`${API_BASE_URL}/courses/${courseId}/confirm`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-User-Id": userId,
+      "Authorization": `Bearer ${accessToken}`,
     },
   });
 

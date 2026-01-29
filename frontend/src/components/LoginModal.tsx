@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import type { TermsAgreement } from "@/types/auth";
+import { useAuthStore } from "@/store/authStore";
+import { exchangeKakaoTokenForJWT } from "@/lib/auth";
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -20,6 +22,7 @@ export default function LoginModal({
   onClose,
   onLoginSuccess,
 }: LoginModalProps) {
+  const { login } = useAuthStore();
   const [agreement, setAgreement] = useState<TermsAgreement>({
     terms: false,
     privacy: false,
@@ -109,28 +112,30 @@ export default function LoginModal({
             // 사용자 정보 조회
             window.Kakao.API.request({
               url: "/v2/user/me",
-              success: (userProfile) => {
+              success: async (userProfile) => {
                 console.log("카카오 로그인 성공:", userProfile);
 
-                // TODO: 백엔드 API 호출하여 JWT 토큰 발급
-                // const response = await fetch('/api/auth/login', {
-                //   method: 'POST',
-                //   headers: { 'Content-Type': 'application/json' },
-                //   body: JSON.stringify({
-                //     kakaoAccessToken: authResponse.access_token,
-                //     agreedToTerms: agreement.terms,
-                //     agreedToPrivacy: agreement.privacy,
-                //     agreedToMarketing: agreement.marketing,
-                //   }),
-                // });
+                try {
+                  // 백엔드 API 호출하여 JWT 토큰 발급
+                  const { user, tokens } = await exchangeKakaoTokenForJWT(
+                    authResponse.access_token
+                  );
 
-                // 임시: 액세스 토큰 반환
-                if (onLoginSuccess) {
-                  onLoginSuccess(authResponse.access_token);
+                  // 전역 상태에 저장
+                  login(user, tokens);
+
+                  // 콜백 호출 (하위 호환성)
+                  if (onLoginSuccess) {
+                    onLoginSuccess(tokens.accessToken);
+                  }
+
+                  setIsLoading(false);
+                  onClose();
+                } catch (err) {
+                  console.error("JWT 토큰 발급 실패:", err);
+                  setError("로그인 처리 중 오류가 발생했습니다.");
+                  setIsLoading(false);
                 }
-
-                setIsLoading(false);
-                onClose();
               },
               fail: (error) => {
                 throw error;
