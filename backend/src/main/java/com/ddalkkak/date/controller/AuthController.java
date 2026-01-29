@@ -1,11 +1,14 @@
 package com.ddalkkak.date.controller;
 
+import com.ddalkkak.date.dto.KakaoAuthResponse;
+import com.ddalkkak.date.dto.KakaoTokenRequest;
 import com.ddalkkak.date.dto.TokenResponse;
 import com.ddalkkak.date.dto.UserResponse;
 import com.ddalkkak.date.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +27,26 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+
+    /**
+     * 카카오 Access Token으로 JWT 토큰 발급
+     * 프론트엔드에서 카카오 SDK로 받은 access token을 백엔드 JWT로 교환
+     */
+    @Operation(
+            summary = "카카오 토큰 교환",
+            description = "카카오 Access Token을 받아서 백엔드 JWT 토큰을 발급합니다. 신규 사용자는 자동으로 회원가입됩니다."
+    )
+    @PostMapping("/kakao/token")
+    public ResponseEntity<KakaoAuthResponse> exchangeKakaoToken(
+            @Valid @RequestBody KakaoTokenRequest request
+    ) {
+        log.info("카카오 토큰 교환 요청");
+
+        KakaoAuthResponse response = authService.exchangeKakaoToken(request.getAccessToken());
+
+        log.info("카카오 토큰 교환 완료: userId={}", response.getUser().getId());
+        return ResponseEntity.ok(response);
+    }
 
     /**
      * 현재 로그인한 사용자 정보 조회

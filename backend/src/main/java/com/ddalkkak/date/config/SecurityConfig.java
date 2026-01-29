@@ -55,12 +55,24 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
+                                "/auth/kakao/token",  // 카카오 토큰 교환
+                                "/auth/refresh",  // 토큰 갱신
                                 "/auth/oauth2/**",
                                 "/oauth2/**",
-                                "/courses/**",  // 비로그인 사용자도 코스 생성 가능
+                                "/courses/generate",  // 비로그인 사용자도 코스 생성 가능
+                                "/courses/{courseId}",  // 코스 조회 및 수정 (비로그인 가능)
                                 "/regions/**",
                                 "/places/**"
                         ).permitAll()
+
+                        // 인증 필요 엔드포인트
+                        .requestMatchers(
+                                "/auth/me",
+                                "/auth/logout",
+                                "/courses/saved",  // 저장된 코스 조회
+                                "/courses/*/save",  // 코스 저장
+                                "/courses/*/confirm"  // 코스 확정
+                        ).authenticated()
 
                         // 그 외 모든 요청은 인증 필요
                         .anyRequest().authenticated()
