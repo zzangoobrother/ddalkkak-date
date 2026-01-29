@@ -3,9 +3,62 @@
  */
 
 import type { CourseInputData, CourseResponse } from "@/types/course";
+import { useAuthStore } from "@/store/authStore";
+import { refreshAccessToken } from "@/lib/auth";
 
 // API 베이스 URL (환경변수로 관리 가능)
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+
+/**
+ * 인증이 필요한 API 호출 헬퍼 (자동 토큰 갱신 지원)
+ */
+async function fetchWithAuth(
+  url: string,
+  options: RequestInit = {}
+): Promise<Response> {
+  const state = useAuthStore.getState();
+  const accessToken = state.tokens?.accessToken;
+  const refreshToken = state.tokens?.refreshToken;
+
+  if (!accessToken) {
+    throw new Error("로그인이 필요합니다.");
+  }
+
+  // Authorization 헤더 추가
+  const headers = {
+    ...options.headers,
+    Authorization: `Bearer ${accessToken}`,
+  };
+
+  // 첫 번째 요청
+  let response = await fetch(url, { ...options, headers });
+
+  // 401 에러 시 토큰 갱신 시도
+  if (response.status === 401 && refreshToken) {
+    try {
+      // Refresh Token으로 새로운 Access Token 발급
+      const newTokens = await refreshAccessToken(refreshToken);
+
+      // 새로운 토큰 저장
+      state.refreshTokens(newTokens);
+
+      // 새로운 Access Token으로 재시도
+      const retryHeaders = {
+        ...options.headers,
+        Authorization: `Bearer ${newTokens.accessToken}`,
+      };
+
+      response = await fetch(url, { ...options, headers: retryHeaders });
+    } catch (error) {
+      // Refresh Token도 만료되었으면 로그아웃
+      console.error("토큰 갱신 실패:", error);
+      state.logout();
+      throw new Error("세션이 만료되었습니다. 다시 로그인해주세요.");
+    }
+  }
+
+  return response;
+}
 
 /**
  * 코스 생성 API 호출
@@ -61,34 +114,13 @@ export async function generateMultipleCourses(
 }
 
 /**
- * 임시 사용자 ID 관리 (localStorage 기반)
- * SCRUM-10에서 실제 인증으로 교체 예정
- */
-function getUserId(): string {
-  if (typeof window === "undefined") {
-    return "";
-  }
-
-  let userId = localStorage.getItem("temp_user_id");
-  if (!userId) {
-    // UUID 생성
-    userId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-    localStorage.setItem("temp_user_id", userId);
-  }
-  return userId;
-}
-
-/**
  * 코스 저장 API 호출
  */
 export async function saveCourse(courseId: string): Promise<void> {
-  const userId = getUserId();
-
-  const response = await fetch(`${API_BASE_URL}/courses/${courseId}/save`, {
+  const response = await fetchWithAuth(`${API_BASE_URL}/courses/${courseId}/save`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-User-Id": userId,
     },
   });
 
@@ -104,16 +136,14 @@ export async function saveCourse(courseId: string): Promise<void> {
 export async function getSavedCourses(
   status?: "CONFIRMED" | "SAVED"
 ): Promise<CourseResponse[]> {
-  const userId = getUserId();
   const queryParam = status ? `?status=${status}` : "";
 
-  const response = await fetch(
+  const response = await fetchWithAuth(
     `${API_BASE_URL}/courses/saved${queryParam}`,
     {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-        "X-User-Id": userId,
       },
     }
   );
@@ -133,13 +163,10 @@ export async function getSavedCourses(
  * 코스 확정
  */
 export async function confirmCourse(courseId: string): Promise<void> {
-  const userId = getUserId();
-
-  const response = await fetch(`${API_BASE_URL}/courses/${courseId}/confirm`, {
+  const response = await fetchWithAuth(`${API_BASE_URL}/courses/${courseId}/confirm`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-User-Id": userId,
     },
   });
 

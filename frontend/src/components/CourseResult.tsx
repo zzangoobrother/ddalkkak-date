@@ -9,8 +9,10 @@ import { shareCourseToChatKakao } from "@/lib/kakao";
 import PlaceDetailModal from "./PlaceDetailModal";
 import CourseCustomize from "./CourseCustomize";
 import ConfirmCourseModal from "./ConfirmCourseModal";
+import LoginModal from "./LoginModal";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { useAuthStore } from "@/store/authStore";
 
 interface CourseResultProps {
   courses: CourseResponse[];
@@ -26,6 +28,7 @@ export default function CourseResult({
   onReset,
   onGenerateMore,
 }: CourseResultProps) {
+  const { isAuthenticated } = useAuthStore();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedPlace, setSelectedPlace] = useState<PlaceInCourse | null>(
     null
@@ -38,6 +41,8 @@ export default function CourseResult({
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
   const [confirmedCourseIds, setConfirmedCourseIds] = useState<Set<string>>(new Set());
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<"save" | "confirm" | null>(null);
   const router = useRouter();
 
   // 현재 표시할 코스
@@ -77,6 +82,13 @@ export default function CourseResult({
 
   // 코스 저장 핸들러
   const handleSaveCourse = async () => {
+    // 인증 체크
+    if (!isAuthenticated) {
+      setPendingAction("save");
+      setIsLoginModalOpen(true);
+      return;
+    }
+
     if (isSaving) return;
 
     try {
@@ -130,6 +142,13 @@ export default function CourseResult({
 
   // 확정 버튼 클릭 (모달 열기)
   const handleConfirmClick = () => {
+    // 인증 체크
+    if (!isAuthenticated) {
+      setPendingAction("confirm");
+      setIsLoginModalOpen(true);
+      return;
+    }
+
     setIsConfirmModalOpen(true);
   };
 
@@ -164,6 +183,31 @@ export default function CourseResult({
   // 확정 모달 취소
   const handleCancelConfirm = () => {
     setIsConfirmModalOpen(false);
+  };
+
+  // 로그인 성공 후 대기 중인 액션 실행
+  const handleLoginSuccess = () => {
+    setIsLoginModalOpen(false);
+
+    if (pendingAction === "save") {
+      // 저장 액션 실행
+      setTimeout(() => {
+        handleSaveCourse();
+      }, 100);
+    } else if (pendingAction === "confirm") {
+      // 확정 액션 실행
+      setTimeout(() => {
+        setIsConfirmModalOpen(true);
+      }, 100);
+    }
+
+    setPendingAction(null);
+  };
+
+  // 로그인 모달 닫기
+  const handleCloseLoginModal = () => {
+    setIsLoginModalOpen(false);
+    setPendingAction(null);
   };
 
   // 현재 코스가 확정되었는지 확인
@@ -462,6 +506,13 @@ export default function CourseResult({
         courseName={currentCourse.courseName}
         onConfirm={handleConfirmCourse}
         onCancel={handleCancelConfirm}
+      />
+
+      {/* 로그인 모달 */}
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={handleCloseLoginModal}
+        onLoginSuccess={handleLoginSuccess}
       />
     </div>
   );

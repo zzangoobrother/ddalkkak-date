@@ -5,11 +5,13 @@ import com.ddalkkak.date.dto.CourseResponse;
 import com.ddalkkak.date.dto.CourseUpdateRequest;
 import com.ddalkkak.date.service.CourseService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -64,46 +66,36 @@ public class CourseController {
 
     /**
      * 코스 저장
-     * 임시: 헤더로 userId를 받음 (SCRUM-10에서 인증 구현 예정)
+     * JWT 인증 필요
      */
-    @Operation(summary = "코스 저장", description = "생성된 코스를 사용자에게 저장합니다")
+    @Operation(summary = "코스 저장", description = "생성된 코스를 사용자에게 저장합니다 (로그인 필요)")
     @PostMapping("/{courseId}/save")
     public ResponseEntity<Void> saveCourse(
             @PathVariable String courseId,
-            @RequestHeader(value = "X-User-Id", required = false) String userId) {
+            @Parameter(hidden = true) Authentication authentication) {
 
-        // 임시: userId가 없으면 에러 반환
-        if (userId == null || userId.isBlank()) {
-            log.warn("코스 저장 실패 - userId 없음");
-            return ResponseEntity.badRequest().build();
-        }
+        String kakaoId = authentication.getName();
+        log.info("코스 저장 요청 - 코스 ID: {}, 카카오 ID: {}", courseId, kakaoId);
 
-        log.info("코스 저장 요청 - 코스 ID: {}, 사용자 ID: {}", courseId, userId);
+        courseService.saveCourseForUser(courseId, kakaoId);
 
-        courseService.saveCourseForUser(courseId, userId);
-
-        log.info("코스 저장 완료 - 코스 ID: {}, 사용자 ID: {}", courseId, userId);
+        log.info("코스 저장 완료 - 코스 ID: {}, 카카오 ID: {}", courseId, kakaoId);
 
         return ResponseEntity.ok().build();
     }
 
     /**
      * 저장된 코스 목록 조회
-     * 임시: 헤더로 userId를 받음 (SCRUM-10에서 인증 구현 예정)
+     * JWT 인증 필요
      */
-    @Operation(summary = "저장된 코스 조회", description = "사용자가 저장한 코스 목록을 조회합니다")
+    @Operation(summary = "저장된 코스 조회", description = "사용자가 저장한 코스 목록을 조회합니다 (로그인 필요)")
     @GetMapping("/saved")
     public ResponseEntity<List<CourseResponse>> getSavedCourses(
-            @RequestHeader(value = "X-User-Id", required = false) String userId,
+            @Parameter(hidden = true) Authentication authentication,
             @RequestParam(value = "status", required = false) String statusParam) {
 
-        // 임시: userId가 없으면 빈 리스트 반환
-        if (userId == null || userId.isBlank()) {
-            log.warn("저장된 코스 조회 실패 - userId 없음");
-            return ResponseEntity.ok(List.of());
-        }
-
-        log.info("저장된 코스 조회 요청 - 사용자 ID: {}, 상태 필터: {}", userId, statusParam);
+        String kakaoId = authentication.getName();
+        log.info("저장된 코스 조회 요청 - 카카오 ID: {}, 상태 필터: {}", kakaoId, statusParam);
 
         // status 파라미터를 CourseStatus로 변환
         com.ddalkkak.date.entity.CourseStatus status = null;
@@ -116,34 +108,29 @@ public class CourseController {
             }
         }
 
-        List<CourseResponse> courses = courseService.getSavedCourses(userId, status);
+        List<CourseResponse> courses = courseService.getSavedCourses(kakaoId, status);
 
-        log.info("저장된 코스 조회 완료 - 사용자 ID: {}, 코스 수: {}", userId, courses.size());
+        log.info("저장된 코스 조회 완료 - 카카오 ID: {}, 코스 수: {}", kakaoId, courses.size());
 
         return ResponseEntity.ok(courses);
     }
 
     /**
      * 코스 확정
-     * 임시: 헤더로 userId를 받음 (SCRUM-10에서 인증 구현 예정)
+     * JWT 인증 필요
      */
-    @Operation(summary = "코스 확정", description = "생성된 코스를 최종 확정합니다")
+    @Operation(summary = "코스 확정", description = "생성된 코스를 최종 확정합니다 (로그인 필요)")
     @PostMapping("/{courseId}/confirm")
     public ResponseEntity<Void> confirmCourse(
             @PathVariable String courseId,
-            @RequestHeader(value = "X-User-Id", required = false) String userId) {
+            @Parameter(hidden = true) Authentication authentication) {
 
-        // 임시: userId가 없으면 에러 반환
-        if (userId == null || userId.isBlank()) {
-            log.warn("코스 확정 실패 - userId 없음");
-            return ResponseEntity.badRequest().build();
-        }
+        String kakaoId = authentication.getName();
+        log.info("코스 확정 요청 - 코스 ID: {}, 카카오 ID: {}", courseId, kakaoId);
 
-        log.info("코스 확정 요청 - 코스 ID: {}, 사용자 ID: {}", courseId, userId);
+        courseService.confirmCourse(courseId, kakaoId);
 
-        courseService.confirmCourse(courseId, userId);
-
-        log.info("코스 확정 완료 - 코스 ID: {}, 사용자 ID: {}", courseId, userId);
+        log.info("코스 확정 완료 - 코스 ID: {}, 카카오 ID: {}", courseId, kakaoId);
 
         return ResponseEntity.ok().build();
     }
