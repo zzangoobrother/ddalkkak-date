@@ -28,12 +28,27 @@ spring:
       data-locations: classpath:data.sql
       continue-on-error: false
 
-  # Security OAuth2 설정 (추후 구성)
-  # security:
-  #   oauth2:
-  #     client:
-  #       registration:
-  #         # 카카오, 네이버 등 추가 예정
+  # Security OAuth2 설정
+  security:
+    oauth2:
+      client:
+        registration:
+          kakao:
+            client-id: ${KAKAO_CLIENT_ID:90cbc5cc41d871d638695a46f59efeaf}
+            client-secret: ${KAKAO_CLIENT_SECRET:CSgHORB79T2TcsBk8er3DiM6VMhRsyIE}
+            redirect-uri: http://localhost:8080/login/oauth2/code/kakao
+            authorization-grant-type: authorization_code
+            client-authentication-method: client_secret_post
+            scope:
+              - profile_nickname
+              - account_email
+            client-name: Kakao
+        provider:
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-name-attribute: id
 
 # 서버 설정
 server:
@@ -61,6 +76,12 @@ springdoc:
   packages-to-scan: com.ddalkkak.date.controller
   default-consumes-media-type: application/json
   default-produces-media-type: application/json
+
+# JWT 설정
+jwt:
+  secret: ${JWT_SECRET:ddalkkak-date-jwt-secret-key-change-this-in-production-min-256-bits-required-for-hs256-algorithm}
+  access-token-validity: 3600000  # 1시간 (밀리초)
+  refresh-token-validity: 604800000  # 7일 (밀리초)
 
 # 외부 API 설정
 external:
