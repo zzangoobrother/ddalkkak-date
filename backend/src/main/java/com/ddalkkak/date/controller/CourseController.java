@@ -153,4 +153,45 @@ public class CourseController {
 
         return ResponseEntity.ok(response);
     }
+
+    /**
+     * 코스 삭제 (SCRUM-30)
+     * JWT 인증 필요
+     */
+    @Operation(summary = "코스 삭제", description = "사용자가 저장한 코스를 삭제합니다 (로그인 필요)")
+    @DeleteMapping("/{courseId}")
+    public ResponseEntity<Void> deleteCourse(
+            @PathVariable String courseId,
+            @Parameter(hidden = true) Authentication authentication) {
+
+        String kakaoId = authentication.getName();
+        log.info("코스 삭제 요청 - 코스 ID: {}, 카카오 ID: {}", courseId, kakaoId);
+
+        courseService.deleteCourse(courseId, kakaoId);
+
+        log.info("코스 삭제 완료 - 코스 ID: {}, 카카오 ID: {}", courseId, kakaoId);
+
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * 코스 복사 (다시 사용) (SCRUM-30)
+     * JWT 인증 필요
+     */
+    @Operation(summary = "코스 복사", description = "완료한 데이트를 다시 사용하여 새로운 코스를 생성합니다 (로그인 필요)")
+    @PostMapping("/{courseId}/copy")
+    public ResponseEntity<CourseResponse> copyCourse(
+            @PathVariable String courseId,
+            @Parameter(hidden = true) Authentication authentication) {
+
+        String kakaoId = authentication.getName();
+        log.info("코스 복사 요청 - 원본 코스 ID: {}, 카카오 ID: {}", courseId, kakaoId);
+
+        CourseResponse response = courseService.copyCourse(courseId, kakaoId);
+
+        log.info("코스 복사 완료 - 원본: {}, 복사본: {}, 카카오 ID: {}",
+                courseId, response.getCourseId(), kakaoId);
+
+        return ResponseEntity.ok(response);
+    }
 }
