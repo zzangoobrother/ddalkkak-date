@@ -589,6 +589,12 @@ public class CourseService {
      */
     @Transactional
     public void saveCourseForUser(String courseId, String userId) {
+        // 최대 50개 제한 체크 (DRAFT 상태 제외)
+        long savedCount = courseRepository.countByUserIdAndStatusNot(userId, com.ddalkkak.date.entity.CourseStatus.DRAFT);
+        if (savedCount >= 50) {
+            throw new IllegalStateException("저장 가능한 코스 개수를 초과했습니다. 최대 50개까지 저장할 수 있습니다.");
+        }
+
         // Course 조회
         Course course = courseRepository.findByCourseId(courseId)
                 .orElseThrow(() -> new IllegalArgumentException("코스를 찾을 수 없음: " + courseId));
@@ -983,5 +989,119 @@ public class CourseService {
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
         return R * c;
+    }
+
+    /**
+     * 코스 삭제
+     * 사용자가 저장한 코스만 삭제 가능
+     */
+    @Transactional
+    public void deleteCourse(String courseId, String userId) {
+        // 코스 조회 및 권한 확인
+        Course course = courseRepository.findByCourseId(courseId)
+                .orElseThrow(() -> new IllegalArgumentException("코스를 찾을 수 없음: " + courseId));
+
+        // 본인의 코스가 아니면 삭제 불가
+        if (course.getUserId() == null || !course.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("본인이 저장한 코스만 삭제할 수 있습니다.");
+        }
+
+        // 코스 삭제
+        courseRepository.deleteByCourseIdAndUserId(courseId, userId);
+        log.info("코스 삭제 완료 - 코스 ID: {}, 사용자: {}", courseId, userId);
+    }
+
+    /**
+     * 코스 복사 (다시 사용)
+     * 완료한 데이트를 다시 사용하여 새로운 코스 생성
+     */
+    @Transactional
+    public CourseResponse copyCourse(String courseId, String userId) {
+        // 원본 코스 조회
+        Course originalCourse = courseRepository.findByCourseId(courseId)
+                .orElseThrow(() -> new IllegalArgumentException("코스를 찾을 수 없음: " + courseId));
+
+        // 최대 50개 제한 체크 (DRAFT 상태 제외)
+        long savedCount = courseRepository.countByUserIdAndStatusNot(userId, com.ddalkkak.date.entity.CourseStatus.DRAFT);
+        if (savedCount >= 50) {
+            throw new IllegalStateException("저장 가능한 코스 개수를 초과했습니다. 최대 50개까지 저장할 수 있습니다.");
+        }
+
+        // 새로운 코스 생성 (복사)
+        Course newCourse = Course.builder()
+                .courseId("course-" + UUID.randomUUID().toString().substring(0, 8))
+                .courseName(originalCourse.getCourseName() + " (복사)")
+                .regionId(originalCourse.getRegionId())
+                .dateTypeId(originalCourse.getDateTypeId())
+                .totalDurationMinutes(originalCourse.getTotalDurationMinutes())
+                .totalBudget(originalCourse.getTotalBudget())
+                .description(originalCourse.getDescription())
+                .userId(userId)
+                .status(com.ddalkkak.date.entity.CourseStatus.SAVED) // 저장 상태로 설정
+                .build();
+
+        // CoursePlace 복사
+        for (CoursePlace cp : originalCourse.getCoursePlaces()) {
+            CoursePlace newCoursePlace = CoursePlace.builder()
+                    .place(cp.getPlace())
+                    .sequence(cp.getSequence())
+                    .durationMinutes(cp.getDurationMinutes())
+                    .estimatedCost(cp.getEstimatedCost())
+                    .recommendedMenu(cp.getRecommendedMenu())
+                    .transportToNext(cp.getTransportToNext())
+                    .build();
+            newCourse.addCoursePlace(newCoursePlace);
+        }
+
+        // 저장
+        Course savedCourse = courseRepository.save(newCourse);
+        log.info("코스 복사 완료 - 원본: {}, 복사본: {}, 사용자: {}",
+                courseId, newCourse.getCourseId(), userId);
+
+        // 응답 DTO 생성
+        // Region 조회
+        Region region = regionRepository.findById(savedCourse.getRegionId())
+                .orElseThrow(() -> new IllegalArgumentException("지역을 찾을 수 없음: " + savedCourse.getRegionId()));
+
+        // DateType 파싱
+        DateType dateType = DateType.fromId(savedCourse.getDateTypeId());
+
+        // CoursePlace -> PlaceInCourseDto 변환
+        List<PlaceInCourseDto> places = savedCourse.getCoursePlaces().stream()
+                .map(cp -> PlaceInCourseDto.builder()
+                        .placeId(cp.getPlace().getId())
+                        .name(cp.getPlace().getName())
+                        .category(cp.getPlace().getCategory())
+                        .address(cp.getPlace().getAddress())
+                        .latitude(cp.getPlace().getLatitude())
+                        .longitude(cp.getPlace().getLongitude())
+                        .durationMinutes(cp.getDurationMinutes())
+                        .estimatedCost(cp.getEstimatedCost())
+                        .recommendedMenu(cp.getRecommendedMenu())
+                        .sequence(cp.getSequence())
+                        .transportToNext(cp.getTransportToNext())
+                        .imageUrls(generatePlaceImageUrls(cp.getPlace().getCategory()))
+                        .openingHours(null)
+                        .needsReservation(null)
+                        .rating(cp.getPlace().getRating())
+                        .reviewCount(cp.getPlace().getReviewCount())
+                        .build())
+                .collect(Collectors.toList());
+
+        // CourseResponse 생성
+        return CourseResponse.builder()
+                .courseId(savedCourse.getCourseId())
+                .courseName(savedCourse.getCourseName())
+                .regionId(savedCourse.getRegionId())
+                .regionName(region.getName())
+                .dateTypeId(savedCourse.getDateTypeId())
+                .dateTypeName(dateType.getName())
+                .totalDurationMinutes(savedCourse.getTotalDurationMinutes())
+                .totalBudget(savedCourse.getTotalBudget())
+                .description(savedCourse.getDescription())
+                .places(places)
+                .createdAt(savedCourse.getCreatedAt().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli())
+                .status(savedCourse.getStatus() != null ? savedCourse.getStatus().name() : null)
+                .build();
     }
 }

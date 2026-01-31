@@ -33,4 +33,14 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
      * 사용자가 저장한 코스 중 특정 상태의 코스만 조회
      */
     List<Course> findByUserIdAndStatusOrderByCreatedAtDesc(String userId, CourseStatus status);
+
+    /**
+     * 사용자가 저장한 코스 수 조회 (DRAFT 제외)
+     */
+    long countByUserIdAndStatusNot(String userId, CourseStatus status);
+
+    /**
+     * 사용자 ID와 코스 ID로 코스 삭제 (본인 코스만 삭제 가능)
+     */
+    void deleteByCourseIdAndUserId(String courseId, String userId);
 }
