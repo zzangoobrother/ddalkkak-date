@@ -175,3 +175,20 @@ export async function confirmCourse(courseId: string): Promise<void> {
     throw new Error(errorData.message || `코스 확정 실패: ${response.statusText}`);
   }
 }
+
+/**
+ * 코스 삭제
+ */
+export async function deleteCourse(courseId: string): Promise<void> {
+  const response = await fetchWithAuth(`${API_BASE_URL}/courses/${courseId}`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || `코스 삭제 실패: ${response.statusText}`);
+  }
+}
