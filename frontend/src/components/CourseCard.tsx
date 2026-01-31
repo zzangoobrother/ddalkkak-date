@@ -2,6 +2,7 @@
 
 import { SavedCourse } from "@/types/course";
 import { formatBudget, formatDuration } from "@/lib/utils";
+import StarRating from "./StarRating";
 
 interface CourseCardProps {
   course: SavedCourse;
@@ -9,6 +10,7 @@ interface CourseCardProps {
   onShare?: (courseId: string) => void;
   onDelete?: (courseId: string) => void;
   onReuse?: (courseId: string) => void;
+  onRate?: (courseId: string) => void;
 }
 
 /**
@@ -20,6 +22,7 @@ export default function CourseCard({
   onShare,
   onDelete,
   onReuse,
+  onRate,
 }: CourseCardProps) {
   const isCompleted = course.status === "CONFIRMED";
   const displayDate = isCompleted
@@ -41,6 +44,30 @@ export default function CourseCard({
           </span>
         )}
       </div>
+
+      {/* 평가 점수 (완료한 데이트에만 표시) */}
+      {isCompleted && course.rating && (
+        <div className="mb-3 flex items-center gap-2">
+          <StarRating rating={course.rating} onRatingChange={() => {}} readonly />
+          <span className="text-sm text-text-secondary">(내 평가)</span>
+        </div>
+      )}
+
+      {/* 평가하기 버튼 (완료한 데이트이지만 아직 평가하지 않은 경우) */}
+      {isCompleted && !course.rating && onRate && (
+        <div className="mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <p className="text-sm text-yellow-800 mb-2">
+            이 데이트는 어떠셨나요?
+          </p>
+          <button
+            type="button"
+            onClick={() => onRate(course.courseId)}
+            className="w-full py-2 px-4 rounded-lg text-sm font-semibold text-yellow-800 bg-yellow-100 hover:bg-yellow-200 transition-colors"
+          >
+            ⭐ 평가하기
+          </button>
+        </div>
+      )}
 
       {/* 코스 정보 그리드 */}
       <div className="grid grid-cols-2 gap-3 mb-4">

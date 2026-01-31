@@ -194,4 +194,25 @@ public class CourseController {
 
         return ResponseEntity.ok(response);
     }
+
+    /**
+     * 코스 평가 (별점 부여) (SCRUM-11)
+     * JWT 인증 필요
+     */
+    @Operation(summary = "코스 평가", description = "완료한 데이트에 평가 점수(별점)를 부여합니다 (로그인 필요)")
+    @PostMapping("/{courseId}/rate")
+    public ResponseEntity<Void> rateCourse(
+            @PathVariable String courseId,
+            @RequestParam Double rating,
+            @Parameter(hidden = true) Authentication authentication) {
+
+        String kakaoId = authentication.getName();
+        log.info("코스 평가 요청 - 코스 ID: {}, 카카오 ID: {}, 평점: {}", courseId, kakaoId, rating);
+
+        courseService.rateCourse(courseId, kakaoId, rating);
+
+        log.info("코스 평가 완료 - 코스 ID: {}, 카카오 ID: {}, 평점: {}", courseId, kakaoId, rating);
+
+        return ResponseEntity.ok().build();
+    }
 }

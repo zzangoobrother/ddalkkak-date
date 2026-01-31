@@ -97,6 +97,13 @@ public class Course {
     private LocalDateTime confirmedAt;
 
     /**
+     * 평가 점수 (1.0 ~ 5.0)
+     * 완료한 데이트에 대한 사용자 평가
+     */
+    @Column(name = "rating")
+    private Double rating;
+
+    /**
      * 생성일시
      */
     @CreationTimestamp
@@ -138,5 +145,15 @@ public class Course {
      */
     public void setConfirmedAt(LocalDateTime confirmedAt) {
         this.confirmedAt = confirmedAt;
+    }
+
+    /**
+     * rating 설정 (코스 평가 시 사용)
+     */
+    public void setRating(Double rating) {
+        if (rating != null && (rating < 1.0 || rating > 5.0)) {
+            throw new IllegalArgumentException("평점은 1.0 ~ 5.0 사이여야 합니다.");
+        }
+        this.rating = rating;
     }
 }

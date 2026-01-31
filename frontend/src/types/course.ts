@@ -97,6 +97,7 @@ export interface CourseResponse {
   createdAt: number;
   status?: string; // "DRAFT" | "SAVED" | "CONFIRMED"
   confirmedAt?: number; // timestamp
+  rating?: number; // 평가 점수 (1.0 ~ 5.0)
 }
 
 // 저장된 코스 (내 코스 목록에서 사용)
