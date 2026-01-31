@@ -192,3 +192,20 @@ export async function deleteCourse(courseId: string): Promise<void> {
     throw new Error(errorData.message || `코스 삭제 실패: ${response.statusText}`);
   }
 }
+
+/**
+ * 코스 평가 (별점 부여)
+ */
+export async function rateCourse(courseId: string, rating: number): Promise<void> {
+  const response = await fetchWithAuth(`${API_BASE_URL}/courses/${courseId}/rate?rating=${rating}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || `코스 평가 실패: ${response.statusText}`);
+  }
+}
