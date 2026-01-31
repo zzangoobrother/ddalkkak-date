@@ -43,6 +43,7 @@ export default function CourseResult({
   const [confirmedCourseIds, setConfirmedCourseIds] = useState<Set<string>>(new Set());
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<"save" | "confirm" | null>(null);
+  const [isSharing, setIsSharing] = useState(false);
   const router = useRouter();
 
   // 현재 표시할 코스
@@ -112,12 +113,19 @@ export default function CourseResult({
 
   // 카카오톡 공유 핸들러
   const handleShareToKakao = async () => {
-    const result = await shareCourseToChatKakao(currentCourse);
+    setIsSharing(true);
+    try {
+      const result = await shareCourseToChatKakao(currentCourse);
 
-    if (!result.success) {
-      alert(
-        `카카오톡 공유에 실패했습니다.\n${result.error || "다시 시도해주세요."}`
-      );
+      if (result.success) {
+        alert("카카오톡 공유가 완료되었습니다! 🎉");
+      } else {
+        alert(
+          `카카오톡 공유에 실패했습니다.\n${result.error || "다시 시도해주세요."}`
+        );
+      }
+    } finally {
+      setIsSharing(false);
     }
   };
 
@@ -465,10 +473,11 @@ export default function CourseResult({
         <div className="space-y-3">
           <button
             type="button"
-            className="w-full py-4 rounded-xl font-semibold bg-primary text-white hover:bg-primary/90 transition-colors"
+            className="w-full py-4 rounded-xl font-semibold bg-primary text-white hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={handleShareToKakao}
+            disabled={isSharing}
           >
-            📤 카카오톡으로 공유하기
+            {isSharing ? "📤 공유 중..." : "📤 카카오톡으로 공유하기"}
           </button>
           <button
             type="button"

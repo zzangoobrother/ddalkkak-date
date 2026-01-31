@@ -35,7 +35,12 @@ export type AnalyticsEvent =
   // 추가 코스 생성 관련
   | "course_generation_more_started"
   | "course_generation_more_completed"
-  | "course_generation_more_failed";
+  | "course_generation_more_failed"
+  // 공유 관련 (SCRUM-31)
+  | "course_share_clicked"
+  | "course_share_kakao_success"
+  | "course_share_kakao_failed"
+  | "course_share_link_copied";
 
 // 이벤트 속성 타입
 export interface AnalyticsEventProperties {
@@ -50,6 +55,12 @@ export interface AnalyticsEventProperties {
   latitude?: number;
   longitude?: number;
   selected_region?: string;
+
+  // 공유 관련 이벤트 (SCRUM-31)
+  course_id?: string;
+  course_name?: string;
+  share_method?: "kakao" | "link";
+  error_message?: string;
 
   // 일반 속성
   [key: string]: unknown;

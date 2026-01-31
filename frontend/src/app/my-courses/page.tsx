@@ -73,7 +73,9 @@ export default function MyCoursesPage() {
 
     const result = await shareCourseToChatKakao(course);
 
-    if (!result.success) {
+    if (result.success) {
+      alert("카카오톡 공유가 완료되었습니다! 🎉");
+    } else {
       alert(
         `카카오톡 공유에 실패했습니다.\n${result.error || "다시 시도해주세요."}`
       );

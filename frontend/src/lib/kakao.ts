@@ -4,6 +4,7 @@
 
 import type { CourseResponse } from "@/types/course";
 import type { KakaoShareOptions } from "@/types/kakao";
+import { trackEvent } from "@/lib/analytics";
 
 /**
  * 카카오 SDK 초기화 여부 확인
@@ -21,6 +22,13 @@ export const shareCourseToChatKakao = async (
   course: CourseResponse
 ): Promise<{ success: boolean; error?: string }> => {
   try {
+    // Analytics: 공유 클릭 이벤트
+    trackEvent("course_share_clicked", {
+      course_id: course.courseId,
+      course_name: course.courseName,
+      share_method: "kakao",
+    });
+
     // 카카오 SDK 초기화 확인
     if (!isKakaoInitialized()) {
       throw new Error("카카오 SDK가 초기화되지 않았습니다.");
@@ -37,15 +45,31 @@ export const shareCourseToChatKakao = async (
         ? `${window.location.origin}/courses/${course.courseId}`
         : "";
 
-    // 코스 요약 정보
-    const summary = `${course.regionName} · ${course.dateTypeName} · 약 ${formatDuration(course.totalDurationMinutes)}`;
+    // 코스 요약 정보 (개선된 포맷)
+    const placeCount = course.places.length;
+    const placeNames = course.places.slice(0, 3).map((p) => p.name).join(" → ");
+    const summary = [
+      `📍 ${course.regionName}`,
+      `💝 ${course.dateTypeName}`,
+      `⏱️ ${formatDuration(course.totalDurationMinutes)}`,
+      `🏷️ ${placeCount}곳`,
+    ].join(" · ");
+
+    // 장소 미리보기 (최대 3곳)
+    const placePreview =
+      placeCount > 0
+        ? `\n\n${course.places
+            .slice(0, 3)
+            .map((p, i) => `${i + 1}. ${p.name}`)
+            .join("\n")}${placeCount > 3 ? `\n...외 ${placeCount - 3}곳` : ""}`
+        : "";
 
     // 카카오톡 공유 옵션
     const shareOptions: KakaoShareOptions = {
       objectType: "feed",
       content: {
-        title: course.courseName,
-        description: `${course.description}\n\n${summary}`,
+        title: `✨ ${course.courseName}`,
+        description: `${course.description || "AI가 추천하는 특별한 데이트 코스"}\n\n${summary}${placePreview}`,
         imageUrl: defaultImageUrl,
         link: {
           mobileWebUrl: shareUrl,
@@ -54,7 +78,7 @@ export const shareCourseToChatKakao = async (
       },
       buttons: [
         {
-          title: "코스 보기",
+          title: "🎯 코스 자세히 보기",
           link: {
             mobileWebUrl: shareUrl,
             webUrl: shareUrl,
@@ -66,9 +90,23 @@ export const shareCourseToChatKakao = async (
     // 카카오톡 공유 실행
     window.Kakao.Share.sendDefault(shareOptions);
 
+    // Analytics: 공유 성공 이벤트
+    trackEvent("course_share_kakao_success", {
+      course_id: course.courseId,
+      course_name: course.courseName,
+    });
+
     return { success: true };
   } catch (error) {
     console.error("카카오톡 공유 실패:", error);
+
+    // Analytics: 공유 실패 이벤트
+    trackEvent("course_share_kakao_failed", {
+      course_id: course.courseId,
+      course_name: course.courseName,
+      error_message: error instanceof Error ? error.message : "알 수 없는 오류",
+    });
+
     return {
       success: false,
       error: error instanceof Error ? error.message : "알 수 없는 오류",
