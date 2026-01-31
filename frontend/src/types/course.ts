@@ -98,3 +98,12 @@ export interface CourseResponse {
   status?: string; // "DRAFT" | "SAVED" | "CONFIRMED"
   confirmedAt?: number; // timestamp
 }
+
+// 저장된 코스 (내 코스 목록에서 사용)
+export interface SavedCourse extends CourseResponse {
+  savedAt: number; // 저장된 날짜 timestamp
+  status: "SAVED" | "CONFIRMED"; // 저장됨 또는 확정됨
+}
+
+// 내 코스 탭 타입
+export type MyCourseTab = "saved" | "completed";
