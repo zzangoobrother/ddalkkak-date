@@ -747,6 +747,7 @@ public class CourseService {
                             .description(course.getDescription())
                             .places(places)
                             .createdAt(course.getCreatedAt().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli())
+                            .rating(course.getRating())
                             .build();
                 })
                 .collect(Collectors.toList());
@@ -809,6 +810,7 @@ public class CourseService {
                             .description(course.getDescription())
                             .places(places)
                             .createdAt(course.getCreatedAt().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli())
+                            .rating(course.getRating())
                             .build();
                 })
                 .collect(Collectors.toList());
@@ -1102,6 +1104,33 @@ public class CourseService {
                 .places(places)
                 .createdAt(savedCourse.getCreatedAt().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli())
                 .status(savedCourse.getStatus() != null ? savedCourse.getStatus().name() : null)
+                .rating(savedCourse.getRating())
                 .build();
+    }
+
+    /**
+     * 코스 평가 (별점 부여)
+     * 완료한 데이트에 평가 점수 부여
+     */
+    @Transactional
+    public void rateCourse(String courseId, String userId, Double rating) {
+        // 코스 조회
+        Course course = courseRepository.findByCourseId(courseId)
+                .orElseThrow(() -> new IllegalArgumentException("코스를 찾을 수 없음: " + courseId));
+
+        // 권한 체크: 본인의 코스이고 확정된 코스만 평가 가능
+        if (course.getUserId() == null || !course.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("본인의 코스만 평가할 수 있습니다.");
+        }
+
+        if (course.getStatus() != com.ddalkkak.date.entity.CourseStatus.CONFIRMED) {
+            throw new IllegalArgumentException("완료한 데이트만 평가할 수 있습니다.");
+        }
+
+        // 평가 점수 설정
+        course.setRating(rating);
+        courseRepository.save(course);
+
+        log.info("코스 평가 완료 - 코스 ID: {}, 사용자: {}, 평점: {}", courseId, userId, rating);
     }
 }

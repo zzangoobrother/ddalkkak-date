@@ -93,4 +93,10 @@ public class CourseResponse {
      */
     @Schema(description = "확정 시각", example = "1642345678000")
     private Long confirmedAt;
+
+    /**
+     * 평가 점수 (1.0 ~ 5.0, null 가능)
+     */
+    @Schema(description = "평가 점수", example = "4.5")
+    private Double rating;
 }

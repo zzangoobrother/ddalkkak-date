@@ -42,6 +42,19 @@ export default function CourseCard({
         )}
       </div>
 
+      {/* 평가 점수 (완료한 데이트에만 표시) */}
+      {isCompleted && course.rating && (
+        <div className="mb-3 flex items-center gap-2">
+          <span className="text-yellow-500 text-lg">⭐</span>
+          <span className="text-lg font-bold text-text-primary">
+            {course.rating.toFixed(1)}점
+          </span>
+          <span className="text-sm text-text-secondary">
+            (내 평가)
+          </span>
+        </div>
+      )}
+
       {/* 코스 정보 그리드 */}
       <div className="grid grid-cols-2 gap-3 mb-4">
         <div>
