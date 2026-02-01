@@ -15,6 +15,7 @@ const mockCourses: CourseResponse[] = [
     totalDurationMinutes: 150,
     totalBudget: 45000,
     description: "홍대 감성 카페를 즐기는 달콤한 데이트 코스입니다.",
+    createdAt: Date.now(),
     places: [
       {
         placeId: 1,

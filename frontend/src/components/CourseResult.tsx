@@ -6,6 +6,7 @@ import type { CourseResponse, PlaceInCourse } from "@/types/course";
 import { formatBudget, formatDuration } from "@/lib/utils";
 import { saveCourse, confirmCourse } from "@/lib/api";
 import { shareCourseToChatKakao } from "@/lib/kakao";
+import { trackEvent } from "@/lib/analytics";
 import PlaceDetailModal from "./PlaceDetailModal";
 import CourseCustomize from "./CourseCustomize";
 import ConfirmCourseModal from "./ConfirmCourseModal";
@@ -139,6 +140,13 @@ export default function CourseResult({
 
       // 클립보드에 복사
       await navigator.clipboard.writeText(shareUrl);
+
+      // Analytics: 링크 복사 성공 이벤트
+      trackEvent("course_shared", {
+        course_id: currentCourse.courseId,
+        course_name: currentCourse.courseName,
+        share_method: "link",
+      });
 
       alert("📋 링크가 클립보드에 복사되었습니다!");
     } catch (error) {

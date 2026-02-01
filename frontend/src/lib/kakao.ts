@@ -47,7 +47,6 @@ export const shareCourseToChatKakao = async (
 
     // 코스 요약 정보 (개선된 포맷)
     const placeCount = course.places.length;
-    const placeNames = course.places.slice(0, 3).map((p) => p.name).join(" → ");
     const summary = [
       `📍 ${course.regionName}`,
       `💝 ${course.dateTypeName}`,
@@ -63,6 +62,10 @@ export const shareCourseToChatKakao = async (
             .map((p, i) => `${i + 1}. ${p.name}`)
             .join("\n")}${placeCount > 3 ? `\n...외 ${placeCount - 3}곳` : ""}`
         : "";
+
+    // 홈 URL (나도 만들어보기 링크)
+    const homeUrl =
+      typeof window !== "undefined" ? window.location.origin : "";
 
     // 카카오톡 공유 옵션
     const shareOptions: KakaoShareOptions = {
@@ -82,6 +85,13 @@ export const shareCourseToChatKakao = async (
           link: {
             mobileWebUrl: shareUrl,
             webUrl: shareUrl,
+          },
+        },
+        {
+          title: "✨ 나도 만들어보기",
+          link: {
+            mobileWebUrl: homeUrl,
+            webUrl: homeUrl,
           },
         },
       ],
