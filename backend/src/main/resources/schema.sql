@@ -101,6 +101,7 @@ CREATE INDEX IF NOT EXISTS idx_term_agreement_term_id ON term_agreements(term_id
 CREATE TABLE IF NOT EXISTS courses (
     id BIGSERIAL PRIMARY KEY,
     course_id VARCHAR(50) NOT NULL UNIQUE,
+    share_id VARCHAR(50) UNIQUE,  -- 공유용 고유 ID (SCRUM-33)
     course_name VARCHAR(200) NOT NULL,
     region_id VARCHAR(50) NOT NULL,
     date_type_id VARCHAR(50) NOT NULL,
@@ -110,6 +111,7 @@ CREATE TABLE IF NOT EXISTS courses (
     user_id VARCHAR(100),  -- 추후 users 테이블과 FK 연결 예정 (BIGINT로 변경)
     status VARCHAR(20),
     confirmed_at TIMESTAMP,
+    rating DOUBLE PRECISION,  -- 코스 평가 점수 (1.0 ~ 5.0) (SCRUM-11)
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_courses_region FOREIGN KEY (region_id) REFERENCES regions(id),
     CONSTRAINT chk_course_status CHECK (status IN ('DRAFT', 'SAVED', 'CONFIRMED'))
@@ -117,6 +119,7 @@ CREATE TABLE IF NOT EXISTS courses (
 
 -- 코스 테이블 인덱스 생성
 CREATE INDEX IF NOT EXISTS idx_course_id ON courses(course_id);
+CREATE INDEX IF NOT EXISTS idx_share_id ON courses(share_id);  -- 공유 ID 인덱스 (SCRUM-33)
 CREATE INDEX IF NOT EXISTS idx_region_id ON courses(region_id);
 CREATE INDEX IF NOT EXISTS idx_user_id ON courses(user_id);
 CREATE INDEX IF NOT EXISTS idx_created_at ON courses(created_at);

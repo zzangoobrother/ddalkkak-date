@@ -1133,4 +1133,46 @@ public class CourseService {
 
         log.info("코스 평가 완료 - 코스 ID: {}, 사용자: {}, 평점: {}", courseId, userId, rating);
     }
+
+    /**
+     * 코스 공유 URL 생성
+     * 공유용 고유 ID를 생성하여 저장
+     */
+    @Transactional
+    public String shareCourse(String courseId) {
+        // 코스 조회
+        Course course = courseRepository.findByCourseId(courseId)
+                .orElseThrow(() -> new IllegalArgumentException("코스를 찾을 수 없음: " + courseId));
+
+        // 이미 공유 ID가 있으면 기존 ID 반환
+        if (course.getShareId() != null && !course.getShareId().isBlank()) {
+            log.info("기존 공유 ID 반환 - 코스 ID: {}, 공유 ID: {}", courseId, course.getShareId());
+            return course.getShareId();
+        }
+
+        // 새로운 공유 ID 생성 (UUID 기반)
+        String shareId = UUID.randomUUID().toString();
+        course.setShareId(shareId);
+        courseRepository.save(course);
+
+        log.info("공유 ID 생성 완료 - 코스 ID: {}, 공유 ID: {}", courseId, shareId);
+
+        return shareId;
+    }
+
+    /**
+     * 공유 ID로 코스 조회
+     * 비회원도 접근 가능
+     */
+    @Transactional(readOnly = true)
+    public CourseResponse getCourseByShareId(String shareId) {
+        // shareId로 코스 조회
+        Course course = courseRepository.findByShareId(shareId)
+                .orElseThrow(() -> new IllegalArgumentException("공유된 코스를 찾을 수 없음: " + shareId));
+
+        log.info("공유 코스 조회 완료 - 공유 ID: {}, 코스 ID: {}", shareId, course.getCourseId());
+
+        // CourseResponse로 변환하여 반환
+        return convertToCourseResponse(course);
+    }
 }
