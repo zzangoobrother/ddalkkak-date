@@ -209,3 +209,23 @@ export async function rateCourse(courseId: string, rating: number): Promise<void
     throw new Error(errorData.message || `코스 평가 실패: ${response.statusText}`);
   }
 }
+
+/**
+ * 코스 ID로 코스 조회 (공유 페이지용 - 비회원 접근 가능)
+ */
+export async function getCourseById(courseId: string): Promise<CourseResponse> {
+  const response = await fetch(`${API_BASE_URL}/courses/${courseId}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || `코스 조회 실패: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  return data;
+}

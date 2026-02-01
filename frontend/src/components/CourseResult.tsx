@@ -44,6 +44,7 @@ export default function CourseResult({
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<"save" | "confirm" | null>(null);
   const [isSharing, setIsSharing] = useState(false);
+  const [isCopyingLink, setIsCopyingLink] = useState(false);
   const router = useRouter();
 
   // 현재 표시할 코스
@@ -126,6 +127,25 @@ export default function CourseResult({
       }
     } finally {
       setIsSharing(false);
+    }
+  };
+
+  // 링크 공유 핸들러
+  const handleCopyLink = async () => {
+    setIsCopyingLink(true);
+    try {
+      // 공유 URL 생성
+      const shareUrl = `${window.location.origin}/share/${currentCourse.courseId}`;
+
+      // 클립보드에 복사
+      await navigator.clipboard.writeText(shareUrl);
+
+      alert("📋 링크가 클립보드에 복사되었습니다!");
+    } catch (error) {
+      console.error("링크 복사 실패:", error);
+      alert("링크 복사에 실패했습니다. 다시 시도해주세요.");
+    } finally {
+      setIsCopyingLink(false);
     }
   };
 
@@ -471,14 +491,25 @@ export default function CourseResult({
         </div>
 
         <div className="space-y-3">
-          <button
-            type="button"
-            className="w-full py-4 rounded-xl font-semibold bg-primary text-white hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={handleShareToKakao}
-            disabled={isSharing}
-          >
-            {isSharing ? "📤 공유 중..." : "📤 카카오톡으로 공유하기"}
-          </button>
+          {/* 공유 버튼 그룹 */}
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              className="py-4 rounded-xl font-semibold bg-primary text-white hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleShareToKakao}
+              disabled={isSharing}
+            >
+              {isSharing ? "📤 공유 중..." : "📤 카카오톡"}
+            </button>
+            <button
+              type="button"
+              className="py-4 rounded-xl font-semibold border-2 border-primary text-primary hover:bg-primary-light transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleCopyLink}
+              disabled={isCopyingLink}
+            >
+              {isCopyingLink ? "📋 복사 중..." : "📋 링크 복사"}
+            </button>
+          </div>
           <button
             type="button"
             onClick={handleConfirmClick}
