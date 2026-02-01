@@ -1172,7 +1172,50 @@ public class CourseService {
 
         log.info("공유 코스 조회 완료 - 공유 ID: {}, 코스 ID: {}", shareId, course.getCourseId());
 
-        // CourseResponse로 변환하여 반환
-        return convertToCourseResponse(course);
+        // Region 조회
+        Region region = regionRepository.findById(course.getRegionId())
+                .orElseThrow(() -> new IllegalArgumentException("지역을 찾을 수 없음: " + course.getRegionId()));
+
+        // DateType 파싱
+        DateType dateType = DateType.fromId(course.getDateTypeId());
+
+        // CoursePlace -> PlaceInCourseDto 변환
+        List<PlaceInCourseDto> places = course.getCoursePlaces().stream()
+                .map(cp -> PlaceInCourseDto.builder()
+                        .placeId(cp.getPlace().getId())
+                        .name(cp.getPlace().getName())
+                        .category(cp.getPlace().getCategory())
+                        .address(cp.getPlace().getAddress())
+                        .latitude(cp.getPlace().getLatitude())
+                        .longitude(cp.getPlace().getLongitude())
+                        .durationMinutes(cp.getDurationMinutes())
+                        .estimatedCost(cp.getEstimatedCost())
+                        .recommendedMenu(cp.getRecommendedMenu())
+                        .sequence(cp.getSequence())
+                        .transportToNext(cp.getTransportToNext())
+                        .imageUrls(generatePlaceImageUrls(cp.getPlace().getCategory()))
+                        .openingHours(null)
+                        .needsReservation(null)
+                        .rating(cp.getPlace().getRating())
+                        .reviewCount(cp.getPlace().getReviewCount())
+                        .build())
+                .collect(Collectors.toList());
+
+        // CourseResponse 생성
+        return CourseResponse.builder()
+                .courseId(course.getCourseId())
+                .courseName(course.getCourseName())
+                .regionId(course.getRegionId())
+                .regionName(region.getName())
+                .dateTypeId(course.getDateTypeId())
+                .dateTypeName(dateType.getName())
+                .totalDurationMinutes(course.getTotalDurationMinutes())
+                .totalBudget(course.getTotalBudget())
+                .description(course.getDescription())
+                .places(places)
+                .createdAt(course.getCreatedAt().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli())
+                .status(course.getStatus() != null ? course.getStatus().name() : null)
+                .rating(course.getRating())
+                .build();
     }
 }
