@@ -42,6 +42,13 @@ public class Course {
     private String courseId;
 
     /**
+     * 공유용 고유 ID (공유 URL에 사용)
+     * 예: /share/{shareId}
+     */
+    @Column(name = "share_id", unique = true, length = 50)
+    private String shareId;
+
+    /**
      * 코스 이름
      */
     @Column(name = "course_name", nullable = false, length = 200)
@@ -155,5 +162,12 @@ public class Course {
             throw new IllegalArgumentException("평점은 1.0 ~ 5.0 사이여야 합니다.");
         }
         this.rating = rating;
+    }
+
+    /**
+     * shareId 설정 (코스 공유 시 사용)
+     */
+    public void setShareId(String shareId) {
+        this.shareId = shareId;
     }
 }

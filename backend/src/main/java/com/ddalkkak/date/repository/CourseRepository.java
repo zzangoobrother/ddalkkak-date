@@ -43,4 +43,9 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
      * 사용자 ID와 코스 ID로 코스 삭제 (본인 코스만 삭제 가능)
      */
     void deleteByCourseIdAndUserId(String courseId, String userId);
+
+    /**
+     * shareId로 코스 조회 (공유 페이지용)
+     */
+    Optional<Course> findByShareId(String shareId);
 }

@@ -215,4 +215,42 @@ public class CourseController {
 
         return ResponseEntity.ok().build();
     }
+
+    /**
+     * 코스 공유 URL 생성 (SCRUM-33)
+     * 공유용 고유 ID를 생성하여 반환
+     */
+    @Operation(summary = "코스 공유", description = "코스 공유용 고유 URL을 생성합니다")
+    @PostMapping("/{courseId}/share")
+    public ResponseEntity<ShareResponse> shareCourse(@PathVariable String courseId) {
+        log.info("코스 공유 요청 - 코스 ID: {}", courseId);
+
+        String shareId = courseService.shareCourse(courseId);
+        ShareResponse response = new ShareResponse(shareId);
+
+        log.info("코스 공유 URL 생성 완료 - 코스 ID: {}, 공유 ID: {}", courseId, shareId);
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 공유된 코스 조회 (SCRUM-33)
+     * 비회원 접근 가능
+     */
+    @Operation(summary = "공유 코스 조회", description = "공유 ID로 코스 정보를 조회합니다 (비회원 접근 가능)")
+    @GetMapping("/shared/{shareId}")
+    public ResponseEntity<CourseResponse> getSharedCourse(@PathVariable String shareId) {
+        log.info("공유 코스 조회 요청 - 공유 ID: {}", shareId);
+
+        CourseResponse response = courseService.getCourseByShareId(shareId);
+
+        log.info("공유 코스 조회 완료 - 공유 ID: {}, 코스 ID: {}", shareId, response.getCourseId());
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 공유 응답 DTO
+     */
+    public record ShareResponse(String shareId) {}
 }
