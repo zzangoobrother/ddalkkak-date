@@ -3,6 +3,7 @@
  */
 
 import type { CourseInputData, CourseResponse } from "@/types/course";
+import type { FeedbackSubmitData } from "@/types/feedback";
 import { useAuthStore } from "@/store/authStore";
 import { refreshAccessToken } from "@/lib/auth";
 
@@ -228,4 +229,21 @@ export async function getCourseById(courseId: string): Promise<CourseResponse> {
 
   const data = await response.json();
   return data;
+}
+
+/**
+ * 피드백 제출 (별점은 기존 rateCourse API 사용, 나머지는 스텁)
+ */
+export async function submitFeedback(feedback: FeedbackSubmitData): Promise<void> {
+  // 별점은 실제 API로 전송
+  await rateCourse(feedback.courseId, feedback.overallRating);
+
+  // 나머지 피드백 데이터는 스텁 (백엔드 API 구현 후 연결 예정)
+  console.log("[피드백 스텁] 상세 피드백 데이터:", {
+    courseId: feedback.courseId,
+    positiveOptions: feedback.positiveOptions,
+    negativeOptions: feedback.negativeOptions,
+    placeRatings: feedback.placeRatings,
+    freeText: feedback.freeText,
+  });
 }

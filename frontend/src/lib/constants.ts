@@ -4,6 +4,7 @@
 
 import type { Region } from "@/types/region";
 import type { DateType, BudgetPreset } from "@/types/course";
+import type { FeedbackOption } from "@/types/feedback";
 
 // 서울 12개 데이트 지역 데이터
 export const SEOUL_DATE_REGIONS: Region[] = [
@@ -242,3 +243,32 @@ export const BUDGET_SLIDER_CONFIG = {
   step: 5000, // 5천원 단위
   defaultValue: 50000, // 기본값 5만원
 } as const;
+
+// ============================================
+// 피드백 옵션 상수
+// ============================================
+
+// 좋았던 점 옵션
+export const POSITIVE_FEEDBACK_OPTIONS: FeedbackOption[] = [
+  { id: "good_route", label: "코스 동선이 좋았어요", emoji: "🚶" },
+  { id: "good_places", label: "장소 선택이 좋았어요", emoji: "📍" },
+  { id: "good_budget", label: "예산에 딱 맞았어요", emoji: "💰" },
+  { id: "good_vibe", label: "분위기가 좋았어요", emoji: "✨" },
+  { id: "good_food", label: "맛집이 맛있었어요", emoji: "🍽️" },
+  { id: "good_experience", label: "특별한 경험이었어요", emoji: "🎉" },
+  { id: "good_time", label: "시간 배분이 좋았어요", emoji: "⏰" },
+];
+
+// 아쉬운 점 옵션
+export const NEGATIVE_FEEDBACK_OPTIONS: FeedbackOption[] = [
+  { id: "bad_route", label: "동선이 불편했어요", emoji: "😵" },
+  { id: "bad_closed", label: "영업하지 않는 곳이 있었어요", emoji: "🚫" },
+  { id: "bad_budget", label: "예산을 초과했어요", emoji: "💸" },
+  { id: "bad_crowded", label: "너무 붐볐어요", emoji: "👥" },
+  { id: "bad_info", label: "정보가 부족했어요", emoji: "❓" },
+  { id: "bad_taste", label: "취향에 안 맞았어요", emoji: "😅" },
+  { id: "bad_distance", label: "이동 거리가 길었어요", emoji: "🚗" },
+]
+
+// 자유 텍스트 최대 글자 수
+export const FEEDBACK_TEXT_MAX_LENGTH = 100;

@@ -64,7 +64,7 @@ export default function CourseCard({
             onClick={() => onRate(course.courseId)}
             className="w-full py-2 px-4 rounded-lg text-sm font-semibold text-yellow-800 bg-yellow-100 hover:bg-yellow-200 transition-colors"
           >
-            ⭐ 평가하기
+            ⭐ 피드백 남기기
           </button>
         </div>
       )}

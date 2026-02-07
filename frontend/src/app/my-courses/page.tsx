@@ -3,10 +3,9 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import CourseCard from "@/components/CourseCard";
-import RatingModal from "@/components/RatingModal";
 import { MyCourseTab, SavedCourse } from "@/types/course";
 import { shareCourseToChatKakao } from "@/lib/kakao";
-import { getSavedCourses, deleteCourse, rateCourse } from "@/lib/api";
+import { getSavedCourses, deleteCourse } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 
 /**
@@ -21,11 +20,6 @@ export default function MyCoursesPage() {
   const [savedCourses, setSavedCourses] = useState<SavedCourse[]>([]);
   const [completedCourses, setCompletedCourses] = useState<SavedCourse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
-  // 평가 모달 상태
-  const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
-  const [selectedCourseForRating, setSelectedCourseForRating] = useState<SavedCourse | null>(null);
-  const [isSubmittingRating, setIsSubmittingRating] = useState(false);
 
   // 코스 데이터 가져오기
   useEffect(() => {
@@ -109,43 +103,9 @@ export default function MyCoursesPage() {
     );
   };
 
-  // 코스 평가 모달 열기
+  // 피드백 페이지로 이동
   const handleRate = (courseId: string) => {
-    const course = completedCourses.find((c) => c.courseId === courseId);
-    if (!course) return;
-
-    setSelectedCourseForRating(course);
-    setIsRatingModalOpen(true);
-  };
-
-  // 평가 제출
-  const handleSubmitRating = async (rating: number) => {
-    if (!selectedCourseForRating) return;
-
-    try {
-      setIsSubmittingRating(true);
-      await rateCourse(selectedCourseForRating.courseId, rating);
-
-      // 완료된 코스 목록에서 해당 코스의 평가 업데이트
-      setCompletedCourses((prev) =>
-        prev.map((course) =>
-          course.courseId === selectedCourseForRating.courseId
-            ? { ...course, rating }
-            : course
-        )
-      );
-
-      // 모달 닫기
-      setIsRatingModalOpen(false);
-      setSelectedCourseForRating(null);
-
-      alert("평가가 완료되었습니다! 감사합니다 🥰");
-    } catch (error) {
-      console.error("코스 평가 실패:", error);
-      alert("평가 제출에 실패했습니다. 다시 시도해주세요.");
-    } finally {
-      setIsSubmittingRating(false);
-    }
+    router.push(`/feedback/${courseId}`);
   };
 
   // 6개월 이상 오래된 코스 확인
@@ -303,18 +263,6 @@ export default function MyCoursesPage() {
         )}
       </div>
 
-      {/* 평가 모달 */}
-      <RatingModal
-        isOpen={isRatingModalOpen}
-        courseName={selectedCourseForRating?.courseName || ""}
-        currentRating={selectedCourseForRating?.rating || 0}
-        onClose={() => {
-          setIsRatingModalOpen(false);
-          setSelectedCourseForRating(null);
-        }}
-        onSubmit={handleSubmitRating}
-        isSubmitting={isSubmittingRating}
-      />
     </div>
   );
 }
