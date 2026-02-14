@@ -232,18 +232,35 @@ export async function getCourseById(courseId: string): Promise<CourseResponse> {
 }
 
 /**
- * 피드백 제출 (별점은 기존 rateCourse API 사용, 나머지는 스텁)
+ * 피드백 제출 (통합 API)
  */
 export async function submitFeedback(feedback: FeedbackSubmitData): Promise<void> {
-  // 별점은 실제 API로 전송
-  await rateCourse(feedback.courseId, feedback.overallRating);
-
-  // 나머지 피드백 데이터는 스텁 (백엔드 API 구현 후 연결 예정)
-  console.log("[피드백 스텁] 상세 피드백 데이터:", {
-    courseId: feedback.courseId,
+  const requestBody = {
+    overallRating: feedback.overallRating,
     positiveOptions: feedback.positiveOptions,
     negativeOptions: feedback.negativeOptions,
-    placeRatings: feedback.placeRatings,
-    freeText: feedback.freeText,
-  });
+    placeRatings: feedback.placeRatings
+      .filter((pr) => pr.recommendation !== null)
+      .map((pr) => ({
+        placeId: pr.placeId,
+        recommendation: pr.recommendation,
+      })),
+    freeText: feedback.freeText || null,
+  };
+
+  const response = await fetchWithAuth(
+    `${API_BASE_URL}/courses/${feedback.courseId}/feedback`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || `피드백 제출 실패: ${response.statusText}`);
+  }
 }

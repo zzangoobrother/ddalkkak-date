@@ -63,6 +63,7 @@ public class SecurityConfig {
                                 "/courses/{courseId}",  // 코스 조회 및 수정 (비로그인 가능)
                                 "/courses/shared/**",  // 공유 코스 조회 (비회원 접근 가능)
                                 "/courses/*/share",  // 공유 URL 생성
+                                "/courses/*/feedback/stats",  // 피드백 통계 (비회원 접근 가능)
                                 "/regions/**",
                                 "/places/**"
                         ).permitAll()
@@ -73,7 +74,8 @@ public class SecurityConfig {
                                 "/auth/logout",
                                 "/courses/saved",  // 저장된 코스 조회
                                 "/courses/*/save",  // 코스 저장
-                                "/courses/*/confirm"  // 코스 확정
+                                "/courses/*/confirm",  // 코스 확정
+                                "/courses/*/feedback"  // 피드백 제출 및 조회
                         ).authenticated()
 
                         // 그 외 모든 요청은 인증 필요
