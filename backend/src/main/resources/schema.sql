@@ -141,3 +141,36 @@ CREATE TABLE IF NOT EXISTS course_places (
 -- 코스-장소 연관 테이블 인덱스 생성
 CREATE INDEX IF NOT EXISTS idx_course_place_course_id ON course_places(course_id);
 CREATE INDEX IF NOT EXISTS idx_course_place_place_id ON course_places(place_id);
+
+-- 피드백 테이블 (SCRUM-35)
+CREATE TABLE IF NOT EXISTS feedbacks (
+    id BIGSERIAL PRIMARY KEY,
+    course_id BIGINT NOT NULL,
+    user_id VARCHAR(100) NOT NULL,
+    overall_rating INTEGER NOT NULL,
+    positive_options VARCHAR(500),
+    negative_options VARCHAR(500),
+    free_text VARCHAR(100),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_feedbacks_course FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
+    CONSTRAINT uq_feedback_course_user UNIQUE (course_id, user_id),
+    CONSTRAINT chk_overall_rating CHECK (overall_rating >= 1 AND overall_rating <= 5)
+);
+
+-- 피드백 테이블 인덱스 생성
+CREATE INDEX IF NOT EXISTS idx_feedback_course_id ON feedbacks(course_id);
+CREATE INDEX IF NOT EXISTS idx_feedback_user_id ON feedbacks(user_id);
+
+-- 장소별 평가 테이블 (SCRUM-35)
+CREATE TABLE IF NOT EXISTS feedback_place_ratings (
+    id BIGSERIAL PRIMARY KEY,
+    feedback_id BIGINT NOT NULL,
+    place_id BIGINT NOT NULL,
+    recommendation VARCHAR(20) NOT NULL,
+    CONSTRAINT fk_fpr_feedback FOREIGN KEY (feedback_id) REFERENCES feedbacks(id) ON DELETE CASCADE,
+    CONSTRAINT chk_recommendation CHECK (recommendation IN ('RECOMMEND', 'NOT_RECOMMEND'))
+);
+
+-- 장소별 평가 테이블 인덱스 생성
+CREATE INDEX IF NOT EXISTS idx_fpr_feedback_id ON feedback_place_ratings(feedback_id);
+CREATE INDEX IF NOT EXISTS idx_fpr_place_id ON feedback_place_ratings(place_id);

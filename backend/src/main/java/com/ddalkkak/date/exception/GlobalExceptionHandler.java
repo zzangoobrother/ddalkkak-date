@@ -57,6 +57,23 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * IllegalStateException 처리 (중복 피드백 등)
+     */
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalStateException(IllegalStateException e) {
+        log.warn("상태 충돌: {}", e.getMessage());
+
+        ErrorResponse error = ErrorResponse.builder()
+                .code("CONFLICT")
+                .message("요청을 처리할 수 없습니다")
+                .detail(e.getMessage())
+                .timestamp(System.currentTimeMillis())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
+    /**
      * 일반 예외 처리
      */
     @ExceptionHandler(Exception.class)

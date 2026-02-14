@@ -63,6 +63,7 @@ public class SecurityConfig {
                                 "/courses/{courseId}",  // 코스 조회 및 수정 (비로그인 가능)
                                 "/courses/shared/**",  // 공유 코스 조회 (비회원 접근 가능)
                                 "/courses/*/share",  // 공유 URL 생성
+                                "/courses/*/feedback/stats",  // 피드백 통계 (비회원 접근 가능)
                                 "/regions/**",
                                 "/places/**"
                         ).permitAll()
