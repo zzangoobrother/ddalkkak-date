@@ -74,7 +74,8 @@ public class SecurityConfig {
                                 "/auth/logout",
                                 "/courses/saved",  // 저장된 코스 조회
                                 "/courses/*/save",  // 코스 저장
-                                "/courses/*/confirm"  // 코스 확정
+                                "/courses/*/confirm",  // 코스 확정
+                                "/courses/*/feedback"  // 피드백 제출 및 조회
                         ).authenticated()
 
                         // 그 외 모든 요청은 인증 필요
