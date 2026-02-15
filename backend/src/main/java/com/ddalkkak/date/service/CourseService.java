@@ -32,6 +32,7 @@ public class CourseService {
     private final CourseRepository courseRepository;
     private final LlmStrategyManager llmStrategyManager;
     private final FallbackTemplateService fallbackTemplateService;
+    private final PushNotificationService pushNotificationService;
 
     /**
      * 코스 생성
@@ -686,6 +687,9 @@ public class CourseService {
             courseRepository.save(newCourse);
             log.info("코스 복사 및 확정 완료 - 원본: {}, 복사본: {}, 사용자: {}",
                     courseId, newCourse.getCourseId(), userId);
+
+            // 피드백 요청 알림 스케줄링
+            pushNotificationService.scheduleFeedbackNotification(newCourse);
             return;
         }
 
@@ -694,6 +698,9 @@ public class CourseService {
         course.setConfirmedAt(LocalDateTime.now());
         courseRepository.save(course);
         log.info("코스 확정 완료 - 코스 ID: {}, 사용자: {}", courseId, userId);
+
+        // 피드백 요청 알림 스케줄링
+        pushNotificationService.scheduleFeedbackNotification(course);
     }
 
     /**
@@ -1007,6 +1014,9 @@ public class CourseService {
         if (course.getUserId() == null || !course.getUserId().equals(userId)) {
             throw new IllegalArgumentException("본인이 저장한 코스만 삭제할 수 있습니다.");
         }
+
+        // 대기 중인 알림 취소
+        pushNotificationService.cancelPendingNotifications(course.getId());
 
         // 코스 삭제
         courseRepository.deleteByCourseIdAndUserId(courseId, userId);
