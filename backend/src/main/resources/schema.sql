@@ -174,3 +174,27 @@ CREATE TABLE IF NOT EXISTS feedback_place_ratings (
 -- 장소별 평가 테이블 인덱스 생성
 CREATE INDEX IF NOT EXISTS idx_fpr_feedback_id ON feedback_place_ratings(feedback_id);
 CREATE INDEX IF NOT EXISTS idx_fpr_place_id ON feedback_place_ratings(place_id);
+
+-- 푸시 알림 테이블 (SCRUM-36)
+CREATE TABLE IF NOT EXISTS push_notifications (
+    id BIGSERIAL PRIMARY KEY,
+    course_id BIGINT NOT NULL,
+    user_id VARCHAR(100) NOT NULL,
+    notification_type VARCHAR(50) NOT NULL,
+    title VARCHAR(200) NOT NULL,
+    body VARCHAR(500) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    scheduled_at TIMESTAMP NOT NULL,
+    sent_at TIMESTAMP,
+    retry_count INTEGER NOT NULL DEFAULT 0,
+    error_message VARCHAR(500),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_push_notifications_course FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
+    CONSTRAINT uq_push_notification UNIQUE (course_id, user_id, notification_type),
+    CONSTRAINT chk_notification_status CHECK (status IN ('PENDING', 'SENT', 'FAILED', 'CANCELLED'))
+);
+
+-- 푸시 알림 테이블 인덱스 생성
+CREATE INDEX IF NOT EXISTS idx_push_notification_status_scheduled ON push_notifications(status, scheduled_at);
+CREATE INDEX IF NOT EXISTS idx_push_notification_course_id ON push_notifications(course_id);
+CREATE INDEX IF NOT EXISTS idx_push_notification_user_id ON push_notifications(user_id);
